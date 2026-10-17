@@ -1,0 +1,232 @@
+{
+  "name": "Contracts_Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "contracts-data",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-1",
+      "name": "GET Contracts",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "contracts-data"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "run-contracts",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-2",
+      "name": "Run Contracts",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "run-contracts"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Contracts",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "node-3",
+      "name": "Read Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        200,
+        100
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json);\nlet expiring_30d = 0;\nlet active_coverage = 0;\nlet total_value = 0;\nrows.forEach(row => {\n  if (parseInt(row['Days to Expiry'] || '0') <= 30) expiring_30d++;\n  if (row['Alert Level'] === 'Normal' || row['Alert Level'] === 'Low') active_coverage++;\n  total_value += parseFloat(row['Annual Value'] || '0') || 0;\n});\nconst summary = {\n  total_contracts: rows.length,\n  expiring_30d,\n  active_coverage,\n  avg_value: rows.length ? total_value / rows.length : 0\n};\nreturn [{ json: { summary, contracts: rows, last_updated: new Date().toISOString() } }];"
+      },
+      "id": "node-4",
+      "name": "Process Contracts Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        100
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# Please provide a brief executive narrative on the following contracts summary and data:\n{{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "node-5",
+      "name": "Generate AI Narrative",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        600,
+        100
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-pro",
+        "options": {}
+      },
+      "id": "node-6",
+      "name": "Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        600,
+        300
+      ],
+      "credentials": {
+        "googleGeminiApi": {
+          "id": "q5z2LHOvO4y9vDZx",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Process Contracts Data').first().json;\nconst aiData = $('Generate AI Narrative').first().json;\ndata.ai_narrative = aiData.text || aiData.output || '';\nreturn [{ json: data }];"
+      },
+      "id": "node-7",
+      "name": "Merge Data + AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        100
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "node-8",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        100
+      ],
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "GET Contracts": {
+      "main": [
+        [
+          {
+            "node": "Read Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Contracts": {
+      "main": [
+        [
+          {
+            "node": "Read Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Process Contracts Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Contracts Data": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Narrative",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate AI Narrative",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Narrative": {
+      "main": [
+        [
+          {
+            "node": "Merge Data + AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Data + AI": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

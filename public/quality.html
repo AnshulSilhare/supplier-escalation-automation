@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quality Incident Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root[data-theme="dark"] {
+            --bg: #0B0E14;
+            --surface: #12161F;
+            --surface2: #1A1F2B;
+            --ink: #E8E6E1;
+            --muted: #7A7670;
+            --line: #232836;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        :root[data-theme="light"] {
+            --bg: #F4F5F7;
+            --surface: #FFFFFF;
+            --surface2: #F9FAFB;
+            --ink: #111827;
+            --muted: #6B7280;
+            --line: #D1D5DB;
+            --glass-border: rgba(0, 0, 0, 0.1);
+        }
+        :root {
+            --accent: #E05A4F;
+            --accent-glow: rgba(224, 90, 79, 0.15);
+            
+            --success: #10B981;
+            --success-bg: rgba(16, 185, 129, 0.1);
+            --warning: #F59E0B;
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            --danger: #EF4444;
+            --danger-bg: rgba(239, 68, 68, 0.1);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        
+        .btn-primary {
+            background-color: var(--accent);
+            color: #ffffff;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* Glass Cards */
+        .glass-card {
+            background: var(--surface);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        /* KPIs */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+        
+        .kpi-card {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .kpi-icon {
+            padding: 8px;
+            border-radius: 8px;
+            background: var(--surface2);
+            color: var(--accent);
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .val-danger { color: var(--danger); }
+        .val-warning { color: var(--warning); }
+        .val-success { color: var(--success); }
+        
+        /* Charts */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        .chart-container {
+            height: 300px;
+            width: 100%;
+            position: relative;
+        }
+        
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--ink);
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        
+        th, td {
+            padding: 16px;
+            border-bottom: 1px solid var(--line);
+        }
+        
+        th {
+            color: var(--muted);
+            font-weight: 500;
+            cursor: pointer;
+        }
+        th:hover {
+            color: var(--ink);
+        }
+        
+        tr:hover {
+            background-color: var(--surface2);
+        }
+        
+        /* Pills */
+        .pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .pill-danger { background-color: var(--danger-bg); color: var(--danger); }
+        .pill-warning { background-color: var(--warning-bg); color: var(--warning); }
+        .pill-success { background-color: var(--success-bg); color: var(--success); }
+
+        /* AI Alert Section */
+        .ai-alert-card {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+            animation: pulse-border 2s infinite;
+        }
+        
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 var(--accent-glow); }
+            70% { box-shadow: 0 0 0 10px rgba(224, 90, 79, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(224, 90, 79, 0); }
+        }
+
+        .ai-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 1.125rem;
+        }
+        
+        .ai-content {
+            line-height: 1.6;
+            color: var(--ink);
+        }
+        
+        details {
+            cursor: pointer;
+        }
+        summary {
+            outline: none;
+            color: var(--accent);
+            font-weight: 500;
+        }
+        .ai-analysis-text {
+            margin-top: 8px;
+            padding-left: 12px;
+            border-left: 2px solid var(--line);
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+        
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+    <script src="config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-title">
+                <div class="status-dot" title="Connected"></div>
+                <h1>QUALITY INCIDENT TRACKER</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn-primary" onclick="runAutomation()" id="btn-run">
+                    <i data-lucide="zap"></i>
+                    Run Automation
+                </button>
+            </div>
+        </header>
+
+        <!-- KPI Grid -->
+        <div class="kpi-grid" id="kpi-grid">
+            <!-- Will be populated by JS -->
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-grid">
+            <div class="glass-card">
+                <h3 class="section-title">Defect Type Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="defectTypeChart"></canvas>
+                </div>
+            </div>
+            <div class="glass-card">
+                <h3 class="section-title">Defect Rate by Supplier (%)</h3>
+                <div class="chart-container">
+                    <canvas id="supplierRateChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="glass-card">
+            <h3 class="section-title">Incident Log</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable(0)">Incident ID <i data-lucide="arrow-up-down" style="width: 14px; height: 14px; vertical-align: middle;"></i></th>
+                            <th onclick="sortTable(1)">Date <i data-lucide="arrow-up-down" style="width: 14px; height: 14px; vertical-align: middle;"></i></th>
+                            <th onclick="sortTable(2)">Supplier <i data-lucide="arrow-up-down" style="width: 14px; height: 14px; vertical-align: middle;"></i></th>
+                            <th onclick="sortTable(3)">SKU <i data-lucide="arrow-up-down" style="width: 14px; height: 14px; vertical-align: middle;"></i></th>
+                            <th>Qty Rcv</th>
+                            <th>Qty Rej</th>
+                            <th>Rate %</th>
+                            <th>Defect Type</th>
+                            <th>Severity</th>
+                            <th>Status</th>
+                            <th>AI Analysis</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Will be populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- AI Root Cause Alert -->
+        <div class="glass-card ai-alert-card">
+            <div class="ai-title">
+                <i data-lucide="brain-circuit"></i>
+                AI Root Cause Analysis
+            </div>
+            <div class="ai-content">
+                <strong>Critical Alert:</strong> Shakti Steel Corp has accumulated 3 quality incidents (QA-001, QA-005, QA-009) with a cumulative defect rate of 10.0% — double the 5% threshold. All incidents are dimensional defects on steel components, indicating a systematic machining tolerance issue rather than random variation.<br><br>
+                <strong>Recommended Actions:</strong><br>
+                (1) Issue a formal Supplier Corrective Action Request (SCAR) within 48 hours.<br>
+                (2) Request the supplier's latest Statistical Process Control (SPC) data and Cpk values for the affected dimensions.<br>
+                (3) Schedule an on-site quality audit within 2 weeks.<br>
+                (4) Begin qualification of an alternate steel supplier (Tata Steel Downstream or JSW Neo) as a contingency.
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Set Theme
+        const theme = localStorage.getItem('sc-theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        
+        // Define Theme Colors for Charts
+        const themeColors = {
+            dark: { ink: '#E8E6E1', line: '#232836', muted: '#7A7670' },
+            light: { ink: '#111827', line: '#D1D5DB', muted: '#6B7280' }
+        };
+        const currentThemeColors = themeColors[theme];
+        const ACCENT_COLOR = '#E05A4F';
+
+        // Sample Data Fallbacks
+        const sampleKPIs = {
+            totalIncidents: 12,
+            openCases: 4,
+            qualityIndex: 94.2,
+            suppliersFlagged: 1
+        };
+
+        const sampleIncidents = [
+            { id: "QA-001", date: "5/9/2026", supplier: "Shakti Steel Corp", sku: "SKU012", qtyRcv: 200, qtyRej: 20, rate: 10.0, type: "Dimensional", severity: "HIGH", status: "OPEN", ai: "High reject rate of 10% on SKU012 indicates systematic machining tolerance drift. Recommend supplier audit and process capability study (Cpk analysis)." },
+            { id: "QA-002", date: "12/9/2026", supplier: "Bharat Chemicals", sku: "SKU001", qtyRcv: 500, qtyRej: 5, rate: 1.0, type: "Packaging", severity: "LOW", status: "CLOSED", ai: "Minor cosmetic denting on outer cartons. No product impact. Root cause: transit handling." },
+            { id: "QA-003", date: "15/9/2026", supplier: "Gujarat Oils Ltd", sku: "SKU009", qtyRcv: 300, qtyRej: 12, rate: 4.0, type: "Contamination", severity: "MEDIUM", status: "INVESTIGATING", ai: "Contamination particles detected in 4% of batch. Possible cross-contamination during filling. Awaiting lab results." },
+            { id: "QA-004", date: "18/9/2026", supplier: "Deccan Foods Pvt", sku: "SKU007", qtyRcv: 400, qtyRej: 8, rate: 2.0, type: "Labeling", severity: "LOW", status: "CLOSED", ai: "Incorrect MRP printed on 8 units. Isolated batch error. Corrective: label verification checkpoint added." },
+            { id: "QA-005", date: "20/9/2026", supplier: "Shakti Steel Corp", sku: "SKU012", qtyRcv: 150, qtyRej: 12, rate: 8.0, type: "Dimensional", severity: "HIGH", status: "OPEN", ai: "Repeat dimensional defect from same supplier. Confirms systematic issue. Escalation to supplier quality team initiated." },
+            { id: "QA-006", date: "22/9/2026", supplier: "Rajput Polymers", sku: "SKU005", qtyRcv: 600, qtyRej: 3, rate: 0.5, type: "Functional", severity: "LOW", status: "CLOSED", ai: "3 units failed seal integrity test. Within acceptable AQL limits (AQL=1.0). No action required." },
+            { id: "QA-007", date: "23/9/2026", supplier: "Bharat Chemicals", sku: "SKU003", qtyRcv: 250, qtyRej: 4, rate: 1.6, type: "Packaging", severity: "LOW", status: "CLOSED", ai: "Outer shrink wrap loose on 4 cartons. Transit damage during monsoon. Recommended: moisture-resistant packaging." },
+            { id: "QA-008", date: "24/9/2026", supplier: "Gujarat Oils Ltd", sku: "SKU009", qtyRcv: 200, qtyRej: 3, rate: 1.5, type: "Labeling", severity: "LOW", status: "CLOSED", ai: "Expiry date font size non-compliant on 3 units. Supplier notified, corrected in next batch." },
+            { id: "QA-009", date: "24/9/2026", supplier: "Shakti Steel Corp", sku: "SKU015", qtyRcv: 100, qtyRej: 5, rate: 5.0, type: "Dimensional", severity: "HIGH", status: "INVESTIGATING", ai: "Third dimensional defect incident. Defect rate trending upward. SCAR recommended." },
+            { id: "QA-010", date: "25/9/2026", supplier: "Deccan Foods Pvt", sku: "SKU017", qtyRcv: 350, qtyRej: 4, rate: 1.1, type: "Contamination", severity: "MEDIUM", status: "INVESTIGATING", ai: "Minor foreign particle in 4 units of mango pulp batch. Sent for lab testing." },
+            { id: "QA-011", date: "26/9/2026", supplier: "Indus Spice Traders", sku: "SKU011", qtyRcv: 180, qtyRej: 6, rate: 3.3, type: "Functional", severity: "MEDIUM", status: "OPEN", ai: "6 units failed weight tolerance check (±2%). Indicates inconsistent portioning at source." },
+            { id: "QA-012", date: "26/9/2026", supplier: "Tamil Packaging Co", sku: "SKU001", qtyRcv: 400, qtyRej: 3, rate: 0.8, type: "Packaging", severity: "LOW", status: "CLOSED", ai: "3 cartons had printing smudges. Cosmetic only. Root cause: press roller maintenance overdue." }
+        ];
+
+        // Fetch or use mock
+        async function loadData() {
+            try {
+                const response = await fetch(`${N8N_BASE_URL}/webhook/quality-data?t=` + new Date().getTime());
+                if (!response.ok) throw new Error("Fetch failed");
+                const data = await response.json();
+                renderKPIs(data.kpis || sampleKPIs);
+                renderTable(data.incidents || sampleIncidents);
+                renderCharts(data.incidents || sampleIncidents);
+            } catch (error) {
+                console.log("Using sample data due to fetch error:", error);
+                renderKPIs(sampleKPIs);
+                renderTable(sampleIncidents);
+                renderCharts(sampleIncidents);
+            }
+            lucide.createIcons();
+        }
+
+        // Render functions
+        function renderKPIs(kpis) {
+            const grid = document.getElementById('kpi-grid');
+            
+            // Open Cases color
+            let openColor = '';
+            if (kpis.openCases > 3) openColor = 'val-danger';
+            else if (kpis.openCases >= 1) openColor = 'val-warning';
+            else openColor = 'val-success';
+
+            // Quality Index color
+            let qiColor = '';
+            if (kpis.qualityIndex > 95) qiColor = 'val-success';
+            else if (kpis.qualityIndex >= 90) qiColor = 'val-warning';
+            else qiColor = 'val-danger';
+
+            // Suppliers Flagged color
+            let flaggedColor = kpis.suppliersFlagged > 0 ? 'val-danger' : 'val-success';
+
+            grid.innerHTML = `
+                <div class="glass-card kpi-card">
+                    <div class="kpi-header">
+                        <span>Total Incidents</span>
+                        <i data-lucide="alert-octagon" class="kpi-icon"></i>
+                    </div>
+                    <div class="kpi-value">${kpis.totalIncidents}</div>
+                </div>
+                <div class="glass-card kpi-card">
+                    <div class="kpi-header">
+                        <span>Open Cases</span>
+                        <i data-lucide="folder-open" class="kpi-icon"></i>
+                    </div>
+                    <div class="kpi-value ${openColor}">${kpis.openCases}</div>
+                </div>
+                <div class="glass-card kpi-card">
+                    <div class="kpi-header">
+                        <span>Quality Index</span>
+                        <i data-lucide="shield-check" class="kpi-icon"></i>
+                    </div>
+                    <div class="kpi-value ${qiColor}">${kpis.qualityIndex}%</div>
+                </div>
+                <div class="glass-card kpi-card">
+                    <div class="kpi-header">
+                        <span>Suppliers Flagged</span>
+                        <i data-lucide="flag" class="kpi-icon"></i>
+                    </div>
+                    <div class="kpi-value ${flaggedColor}">${kpis.suppliersFlagged}</div>
+                </div>
+            `;
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            data.forEach(row => {
+                // Severity Pill
+                let sevClass = 'pill-success';
+                if (row.severity === 'HIGH') sevClass = 'pill-danger';
+                else if (row.severity === 'MEDIUM') sevClass = 'pill-warning';
+
+                // Status Pill
+                let statusClass = 'pill-success';
+                if (row.status === 'OPEN') statusClass = 'pill-danger';
+                else if (row.status === 'INVESTIGATING') statusClass = 'pill-warning';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.id}</td>
+                    <td>${row.date}</td>
+                    <td>${row.supplier}</td>
+                    <td>${row.sku}</td>
+                    <td>${row.qtyRcv}</td>
+                    <td>${row.qtyRej}</td>
+                    <td>${row.rate.toFixed(1)}</td>
+                    <td>${row.type}</td>
+                    <td><span class="pill ${sevClass}">${row.severity}</span></td>
+                    <td><span class="pill ${statusClass}">${row.status}</span></td>
+                    <td>
+                        <details>
+                            <summary>View</summary>
+                            <div class="ai-analysis-text">${row.ai}</div>
+                        </details>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderCharts(incidents) {
+            Chart.defaults.color = currentThemeColors.ink;
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            
+            // Defect Type Chart
+            const defectData = {
+                "Dimensional": 4,
+                "Packaging": 3,
+                "Contamination": 2,
+                "Labeling": 2,
+                "Functional": 1
+            };
+            const typeCtx = document.getElementById('defectTypeChart').getContext('2d');
+            new Chart(typeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(defectData),
+                    datasets: [{
+                        data: Object.values(defectData),
+                        backgroundColor: [
+                            '#E05A4F', // Accent
+                            '#CA5147', // Darker
+                            '#EF7A71', // Lighter
+                            '#A5423A', // Even darker
+                            '#F39B94'  // Even lighter
+                        ],
+                        borderWidth: 1,
+                        borderColor: currentThemeColors.line
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // Defect Rate Chart
+            const supplierData = {
+                "Bharat Chemicals": 1.2,
+                "Shakti Steel Corp": 10.0,
+                "Rajput Polymers": 0.5,
+                "Gujarat Oils": 2.8,
+                "Deccan Foods": 1.5
+            };
+            
+            const supplierNames = Object.keys(supplierData);
+            const supplierRates = Object.values(supplierData);
+            const barColors = supplierRates.map(rate => {
+                if (rate > 5) return '#EF4444'; // Red
+                if (rate >= 3) return '#F59E0B'; // Amber
+                return '#10B981'; // Green
+            });
+
+            const rateCtx = document.getElementById('supplierRateChart').getContext('2d');
+            new Chart(rateCtx, {
+                type: 'bar',
+                data: {
+                    labels: supplierNames,
+                    datasets: [{
+                        label: 'Defect Rate (%)',
+                        data: supplierRates,
+                        backgroundColor: barColors,
+                        borderRadius: 6, barPercentage: 0.5, maxBarThickness: 40, borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: currentThemeColors.line }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'thresholdLine',
+                    beforeDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const yAxis = chart.scales.y;
+                        const xAxis = chart.scales.x;
+                        const yThreshold = yAxis.getPixelForValue(5);
+                        
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.moveTo(xAxis.left, yThreshold);
+                        ctx.lineTo(xAxis.right, yThreshold);
+                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = '#EF4444';
+                        ctx.setLineDash([5, 5]);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }]
+            });
+        }
+
+        async function runAutomation() {
+            const btn = document.getElementById('btn-run');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader" class="spin"></i> Running...`;
+            lucide.createIcons();
+
+            try {
+                await fetch(`${N8N_BASE_URL}/webhook/run-quality`, { method: 'POST' });
+                btn.innerHTML = `<i data-lucide="check"></i> Done`;
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    lucide.createIcons();
+                }, 2000);
+            } catch (err) {
+                btn.innerHTML = `<i data-lucide="x"></i> Error`;
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    lucide.createIcons();
+                }, 2000);
+            }
+            lucide.createIcons();
+        }
+
+        // Simple table sorting
+        let sortAsc = true;
+        function sortTable(colIndex) {
+            const tbody = document.getElementById('table-body');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            rows.sort((a, b) => {
+                let valA = a.children[colIndex].textContent.trim();
+                let valB = b.children[colIndex].textContent.trim();
+                
+                // Try parsing as number
+                const numA = parseFloat(valA);
+                const numB = parseFloat(valB);
+                
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return sortAsc ? numA - numB : numB - numA;
+                }
+                
+                return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            });
+            
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+            sortAsc = !sortAsc;
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>
+
+

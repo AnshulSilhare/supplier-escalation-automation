@@ -1,0 +1,266 @@
+{
+  "name": "Quality Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "quality-data",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "qa-get",
+      "name": "GET Quality",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "run-quality",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "qa-run",
+      "name": "Run Quality",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Quality_Incidents",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        400
+      ],
+      "id": "qa-sheets",
+      "name": "Read Google Sheets",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nlet open_cases = 0;\nlet defect_by_type = {};\nlet supplier_rejects = {};\nlet supplier_received = {};\n\nconst incidents = rows.map(r => {\n  if (r.Status === 'OPEN' || r.Status === 'INVESTIGATING') open_cases++;\n  let type = r.Defect_Type || 'Other';\n  defect_by_type[type] = (defect_by_type[type] || 0) + 1;\n  \n  let sup = r.Supplier;\n  let rej = parseFloat(r.Qty_Rejected||0);\n  let rcv = parseFloat(r.Qty_Received||1);\n  supplier_rejects[sup] = (supplier_rejects[sup] || 0) + rej;\n  supplier_received[sup] = (supplier_received[sup] || 0) + rcv;\n  \n  return { ...r, defect_rate: ((rej/rcv)*100).toFixed(1) };\n});\n\nlet defect_by_supplier = { labels: [], values: [] };\nlet total_rej = 0, total_rcv = 0;\nlet flagged_suppliers = 0;\nfor (const sup in supplier_received) {\n  let rate = (supplier_rejects[sup] / supplier_received[sup]) * 100;\n  defect_by_supplier.labels.push(sup);\n  defect_by_supplier.values.push(rate.toFixed(1));\n  total_rej += supplier_rejects[sup];\n  total_rcv += supplier_received[sup];\n  if (rate > 5) flagged_suppliers++;\n}\n\nlet quality_index = total_rcv ? (100 - ((total_rej/total_rcv)*100)) : 100;\n\nconst summary = {\n  total_incidents: rows.length,\n  open_cases,\n  quality_index: quality_index.toFixed(1),\n  flagged_suppliers\n};\n\nreturn [{ json: { summary, incidents, defect_by_type, defect_by_supplier, last_updated: new Date().toISOString() } }];"
+      },
+      "id": "qa-code",
+      "name": "Process Quality Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        400
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are a quality assurance analyst. Based on these quality incident records, perform a root cause analysis. Identify the most problematic supplier, the dominant defect pattern, whether it's systematic or random, and recommend 3 specific corrective actions. Data: {{ JSON.stringify($input.first().json) }}",
+        "hasOutputParser": false
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        920,
+        400
+      ],
+      "id": "qa-ai",
+      "name": "Generate AI Root Cause",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        920,
+        600
+      ],
+      "id": "qa-gemini",
+      "name": "Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "q5z2LHOvO4y9vDZx",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const qaData = $('Process Quality Data').first().json;\nconst aiData = $('Generate AI Root Cause').first().json;\nqaData.ai_analysis = aiData.text || aiData.output || '';\nreturn [{ json: qaData }];"
+      },
+      "id": "qa-merge",
+      "name": "Merge Data + AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        400
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "qa-resp",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1360,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "GET Quality": {
+      "main": [
+        [
+          {
+            "node": "Read Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Quality": {
+      "main": [
+        [
+          {
+            "node": "Read Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Process Quality Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Quality Data": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Root Cause",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Root Cause": {
+      "main": [
+        [
+          {
+            "node": "Merge Data + AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate AI Root Cause",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Data + AI": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "Control Tower"
+    }
+  ]
+}

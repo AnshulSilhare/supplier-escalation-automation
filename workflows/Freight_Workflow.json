@@ -1,0 +1,218 @@
+{
+  "name": "Freight Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "freight-data",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "GET Freight",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "run-freight",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Run Freight",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Freight_Tracker",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "name": "Read Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        200,
+        100
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json);\n\nlet total_shipments = rows.length;\nlet in_transit = rows.filter(r => (r.Status || '').toLowerCase() === 'in transit' || (r.Status || '').toLowerCase() === 'in-transit').length;\nlet delayed = rows.filter(r => (r.Status || '').toLowerCase() === 'delayed').length;\nlet otd_percentage = total_shipments ? Math.round(((total_shipments - delayed) / total_shipments) * 100) : 0;\n\nlet carrierStats = {};\nrows.forEach(r => {\n  let c = r.Carrier || 'Unknown';\n  if(!carrierStats[c]) carrierStats[c] = { total: 0, delayed: 0 };\n  carrierStats[c].total++;\n  if((r.Status || '').toLowerCase() === 'delayed') carrierStats[c].delayed++;\n});\nlet labels = Object.keys(carrierStats);\nlet data = labels.map(c => Math.round(((carrierStats[c].total - carrierStats[c].delayed) / carrierStats[c].total) * 100));\n\nconst summary = {\n  total_shipments,\n  in_transit,\n  delayed,\n  otd_percentage\n};\n\nconst carrierData = {\n  labels,\n  data\n};\n\nreturn [{ json: { summary, shipments: rows, carrierData, last_updated: new Date().toISOString() } }];"
+      },
+      "name": "Process Freight Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        100
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here is the freight data summary: {{$json.summary}}. Please write a short narrative report analyzing this data."
+      },
+      "name": "Generate AI Narrative",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        600,
+        100
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-1.5-flash",
+        "options": {}
+      },
+      "name": "Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        600,
+        300
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "q5z2LHOvO4y9vDZx",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Process Freight Data').first().json;\nconst aiData = $('Generate AI Narrative').first().json;\ndata.ai_narrative = aiData.text || aiData.output || '';\nreturn [{ json: data }];"
+      },
+      "name": "Merge Data + AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        100
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        100
+      ],
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "GET Freight": {
+      "main": [
+        [
+          {
+            "node": "Read Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Freight": {
+      "main": [
+        [
+          {
+            "node": "Read Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Process Freight Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Freight Data": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Narrative",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Narrative": {
+      "main": [
+        [
+          {
+            "node": "Merge Data + AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate AI Narrative",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Data + AI": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

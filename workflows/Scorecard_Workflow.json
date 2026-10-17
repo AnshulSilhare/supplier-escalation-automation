@@ -1,0 +1,266 @@
+{
+  "name": "Scorecard Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "scorecard-data",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "sc-get",
+      "name": "GET Scorecard",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "run-scorecard",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "sc-run",
+      "name": "Run Scorecard",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Supplier_Scorecard",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        400
+      ],
+      "id": "sc-sheets",
+      "name": "Read Google Sheets",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nlet total_suppliers = rows.length;\nlet sum_otif = 0;\nlet sum_qual = 0;\nlet at_risk = 0;\n\nconst suppliers = rows.map(r => {\n  let otif = parseFloat(r.OTIF_Pct||0);\n  let qual = parseFloat(r.Quality_Pct||0);\n  let costVar = parseFloat(r.Cost_Variance_Pct||0);\n  let lead = parseFloat(r.Avg_Lead_Days||0);\n  sum_otif += otif;\n  sum_qual += qual;\n  \n  let score = (otif*0.3) + (qual*0.3) + ((100-Math.abs(costVar))*0.2) + ((100-lead*5)*0.2);\n  let grade = score >= 85 ? 'A' : (score >= 70 ? 'B' : (score >= 55 ? 'C' : 'D'));\n  if (grade === 'C' || grade === 'D') at_risk++;\n  \n  return { name: r.Supplier_Name, grade, otif, quality: qual, costVar, leadDays: lead, score, incidents: r.Incidents_Count };\n});\n\nconst summary = {\n  total_suppliers,\n  avg_otif: total_suppliers ? (sum_otif/total_suppliers).toFixed(1) : 0,\n  avg_quality: total_suppliers ? (sum_qual/total_suppliers).toFixed(1) : 0,\n  at_risk_count: at_risk\n};\n\nreturn [{ json: { summary, suppliers, chartData: { labels: suppliers.map(s => s.name), datasets: suppliers.map(s => [s.otif, s.quality, 100-Math.abs(s.costVar), 100-s.leadDays*5]) }, last_updated: new Date().toISOString() } }];"
+      },
+      "id": "sc-code",
+      "name": "Process Scorecard Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        400
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are a supply chain analyst. Based on this supplier scorecard data, write a 3-4 sentence executive summary. Highlight the best and worst performers, flag any risks, and give one specific action recommendation. Data: {{ JSON.stringify($input.first().json) }}",
+        "hasOutputParser": false
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        920,
+        400
+      ],
+      "id": "sc-ai",
+      "name": "Generate AI Narrative",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        920,
+        600
+      ],
+      "id": "sc-gemini",
+      "name": "Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "q5z2LHOvO4y9vDZx",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const scorecardData = $('Process Scorecard Data').first().json;\nconst aiData = $('Generate AI Narrative').first().json;\nscorecardData.ai_narrative = aiData.text || aiData.output || '';\nreturn [{ json: scorecardData }];"
+      },
+      "id": "sc-merge",
+      "name": "Merge Data + AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        400
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "sc-resp",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1360,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "GET Scorecard": {
+      "main": [
+        [
+          {
+            "node": "Read Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Scorecard": {
+      "main": [
+        [
+          {
+            "node": "Read Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Process Scorecard Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Scorecard Data": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Narrative",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Narrative": {
+      "main": [
+        [
+          {
+            "node": "Merge Data + AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate AI Narrative",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Data + AI": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "Control Tower"
+    }
+  ]
+}

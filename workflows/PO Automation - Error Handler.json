@@ -1,0 +1,69 @@
+{
+  "name": "PO Automation - Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c81cef0a-98c5-4af1-a540-df745ff1fd49",
+      "name": "Error Trigger",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "sendTo": "anshulsilhare25@gmail.com",
+        "subject": "=[ALERT] PO Automation Workflow Failure: {{ $json.workflow.name }}",
+        "emailType": "text",
+        "message": "=A critical error halted the PO Automation pipeline:  \u2022 Workflow: {{ $json.workflow.name }} (ID: {{ $json.workflow.id }}) \u2022 Failed Node: {{ $json.execution.error.node.name }} \u2022 Error Message: {{ $json.execution.error.message }} \u2022 Execution ID: {{ $json.execution.id }} \u2022 Timestamp: {{ $now }}  Please inspect the n8n execution log to resolve the issue.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "2f124b21-25a8-4670-9217-571f143433b4",
+      "name": "Send a message",
+      "webhookId": "6a5a9315-9932-45dd-a084-817aa7c9c33a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "q6BUDv91kVNmioTh",
+          "name": "Gmail account"
+        }
+      },
+      "executeOnce": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ac9eff96-89a6-44fb-8eac-5bec86304f76",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ddc4a7b5b782d2b811a8149401fe34640fef7febf1f33bcd4e824ce3d854fc2b"
+  },
+  "nodeGroups": [],
+  "id": "SRZ6CxNYNXH1hrAZ",
+  "tags": []
+}

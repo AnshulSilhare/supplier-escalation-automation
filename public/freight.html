@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FREIGHT & SHIPMENT TRACKER</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --accent: #38BDF8;
+            --accent-rgb: 56, 189, 248;
+        }
+        
+        [data-theme="dark"] {
+            --bg: #0B0E14;
+            --surface: #12161F;
+            --surface2: #1A1F2B;
+            --ink: #E8E6E1;
+            --muted: #7A7670;
+            --line: #232836;
+            --glass-border: rgba(255, 255, 255, 0.08);
+            
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --success-bg: rgba(16, 185, 129, 0.1);
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            --danger-bg: rgba(239, 68, 68, 0.1);
+            --info-bg: rgba(56, 189, 248, 0.1);
+        }
+
+        [data-theme="light"] {
+            --bg: #F4F5F7;
+            --surface: #FFFFFF;
+            --surface2: #F9FAFB;
+            --ink: #111827;
+            --muted: #6B7280;
+            --line: #D1D5DB;
+            --glass-border: rgba(0, 0, 0, 0.08);
+            
+            --success: #059669;
+            --warning: #D97706;
+            --danger: #DC2626;
+            --success-bg: rgba(16, 185, 129, 0.1);
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            --danger-bg: rgba(239, 68, 68, 0.1);
+            --info-bg: rgba(56, 189, 248, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            padding: 2rem;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--line);
+        }
+        
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--muted);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--muted);
+        }
+        .status-dot.connected {
+            background-color: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        button {
+            background-color: var(--accent);
+            color: #000;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: opacity 0.2s;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        .theme-toggle {
+            background: var(--surface2);
+            color: var(--ink);
+            border: 1px solid var(--line);
+            padding: 0.5rem;
+        }
+
+        /* Glass Card */
+        .glass-card {
+            background-color: var(--surface);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        /* Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        /* Layout */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Charts */
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+        
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th, td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--line);
+            white-space: nowrap;
+        }
+        th {
+            color: var(--muted);
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Pills */
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .pill.delivered { background-color: var(--success-bg); color: var(--success); }
+        .pill.in_transit { background-color: var(--info-bg); color: var(--accent); }
+        .pill.at_risk { background-color: var(--warning-bg); color: var(--warning); }
+        .pill.delayed { background-color: var(--danger-bg); color: var(--danger); animation: pulse 2s infinite; }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+    </style>
+    <script src="config.js"></script>
+</head>
+<body>
+
+
+
+<div class="container">
+    <header>
+        <div class="header-title">
+            <h1>FREIGHT & SHIPMENT TRACKER</h1>
+        </div>
+        <div class="header-actions">
+            <div class="connection-status">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">Disconnected</span>
+            </div>
+            
+            <button onclick="runAutomation()" id="btn-run">
+                <i data-lucide="play"></i> Run Automation
+            </button>
+        </div>
+    </header>
+
+    <div class="kpi-grid">
+        <div class="glass-card kpi-card">
+            <div class="kpi-header">
+                <span>Total Shipments</span>
+                <i data-lucide="package"></i>
+            </div>
+            <div class="kpi-value" id="kpi-total">--</div>
+        </div>
+        <div class="glass-card kpi-card">
+            <div class="kpi-header">
+                <span>In Transit</span>
+                <i data-lucide="truck" style="color: var(--accent)"></i>
+            </div>
+            <div class="kpi-value" id="kpi-transit" style="color: var(--accent)">--</div>
+        </div>
+        <div class="glass-card kpi-card">
+            <div class="kpi-header">
+                <span>Delayed</span>
+                <i data-lucide="alert-triangle" style="color: var(--danger)"></i>
+            </div>
+            <div class="kpi-value" id="kpi-delayed" style="color: var(--danger)">--</div>
+        </div>
+        <div class="glass-card kpi-card">
+            <div class="kpi-header">
+                <span>On-Time Delivery %</span>
+                <i data-lucide="clock" id="otd-icon"></i>
+            </div>
+            <div class="kpi-value" id="kpi-otd">--</div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="glass-card">
+            <h2 class="section-title">Carrier OTD% Comparison</h2>
+            <div class="chart-container">
+                <canvas id="carrierChart"></canvas>
+            </div>
+        </div>
+
+        <div class="glass-card table-container">
+            <h2 class="section-title">Shipment Tracking</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Shipment ID</th>
+                        <th>PO#</th>
+                        <th>Carrier</th>
+                        <th>Route</th>
+                        <th>Ship Date</th>
+                        <th>ETA</th>
+                        <th>Status</th>
+                        <th>Days Left</th>
+                    </tr>
+                </thead>
+                <tbody id="shipment-tbody">
+                    <!-- Rows rendered here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="glass-card table-container">
+            <h2 class="section-title">Carrier Performance Summary</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Carrier</th>
+                        <th>Total Shipments</th>
+                        <th>Delivered</th>
+                        <th>On-Time</th>
+                        <th>OTD%</th>
+                    </tr>
+                </thead>
+                <tbody id="summary-tbody">
+                    <!-- Rows rendered here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Theme Management
+    const themeStr = localStorage.getItem('sc-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', themeStr);
+    const initialIcon = themeStr === 'dark' ? 'sun' : 'moon';
+    document.getElementById('theme-icon').setAttribute('data-lucide', initialIcon);
+    
+    lucide.createIcons();
+
+    // Data handling
+    const mockData = {
+        kpis: {
+            total: 18,
+            transit: 7,
+            delayed: 3,
+            otd: 81.8
+        },
+        chart: [
+            { carrier: 'BlueDart', otd: 92 },
+            { carrier: 'Rivigo', otd: 88 },
+            { carrier: 'Delhivery', otd: 85 },
+            { carrier: 'DTDC', otd: 78 },
+            { carrier: 'GATI', otd: 73 }
+        ],
+        shipments: [
+            { id: 'SHP-001', po: 'PO-2001', carrier: 'BlueDart', origin: 'Mumbai', dest: 'Delhi NCR', shipDate: '7/9/2026', eta: '10/9/2026', status: 'DELIVERED', daysLeft: '—' },
+            { id: 'SHP-002', po: 'PO-2003', carrier: 'GATI', origin: 'Chennai', dest: 'Kolkata', shipDate: '10/9/2026', eta: '15/9/2026', status: 'DELIVERED', daysLeft: '—' },
+            { id: 'SHP-003', po: 'PO-2004', carrier: 'Delhivery', origin: 'Delhi NCR', dest: 'Mumbai', shipDate: '12/9/2026', eta: '16/9/2026', status: 'DELIVERED', daysLeft: '—' },
+            { id: 'SHP-004', po: 'PO-2005', carrier: 'BlueDart', origin: 'Mumbai', dest: 'Nagpur', shipDate: '15/9/2026', eta: '18/9/2026', status: 'DELIVERED', daysLeft: '—' },
+            { id: 'SHP-005', po: 'PO-2008', carrier: 'Delhivery', origin: 'Chennai', dest: 'Kolkata', shipDate: '22/9/2026', eta: '27/9/2026', status: 'IN_TRANSIT', daysLeft: '1' },
+            { id: 'SHP-006', po: 'PO-2009', carrier: 'DTDC', origin: 'Nagpur', dest: 'Delhi NCR', shipDate: '23/9/2026', eta: '28/9/2026', status: 'IN_TRANSIT', daysLeft: '2' },
+            { id: 'SHP-007', po: 'PO-2010', carrier: 'Rivigo', origin: 'Mumbai', dest: 'Chennai', shipDate: '24/9/2026', eta: '29/9/2026', status: 'IN_TRANSIT', daysLeft: '3' },
+            { id: 'SHP-008', po: 'PO-2012', carrier: 'GATI', origin: 'Nagpur', dest: 'Mumbai', shipDate: '18/9/2026', eta: '23/9/2026', status: 'DELAYED', daysLeft: '-3' },
+            { id: 'SHP-009', po: 'PO-2013', carrier: 'DTDC', origin: 'Delhi NCR', dest: 'Kolkata', shipDate: '20/9/2026', eta: '25/9/2026', status: 'DELAYED', daysLeft: '-1' },
+            { id: 'SHP-010', po: 'PO-2014', carrier: 'BlueDart', origin: 'Mumbai', dest: 'Delhi NCR', shipDate: '25/9/2026', eta: '30/9/2026', status: 'IN_TRANSIT', daysLeft: '4' },
+            { id: 'SHP-011', po: 'PO-2015', carrier: 'Rivigo', origin: 'Chennai', dest: 'Nagpur', shipDate: '24/9/2026', eta: '28/9/2026', status: 'AT_RISK', daysLeft: '1' },
+            { id: 'SHP-012', po: 'PO-2016', carrier: 'GATI', origin: 'Kolkata', dest: 'Mumbai', shipDate: '19/9/2026', eta: '24/9/2026', status: 'DELAYED', daysLeft: '-2' }
+        ],
+        summary: [
+            { carrier: 'BlueDart', total: 5, delivered: 3, onTime: 3, otd: '92%' },
+            { carrier: 'Delhivery', total: 4, delivered: 2, onTime: 2, otd: '85%' },
+            { carrier: 'GATI', total: 4, delivered: 1, onTime: 0, otd: '73%' },
+            { carrier: 'DTDC', total: 3, delivered: 1, onTime: 1, otd: '78%' },
+            { carrier: 'Rivigo', total: 2, delivered: 0, onTime: 0, otd: '88%' }
+        ]
+    };
+
+    let chartInstance = null;
+
+    async function loadData() {
+        try {
+            const res = await fetch(`${N8N_BASE_URL}/webhook/freight-data?t=` + new Date().getTime());
+            if (!res.ok) throw new Error('Fetch failed');
+            const json = await res.json();
+            renderAll(json);
+            setConnected(true);
+        } catch (e) {
+            console.warn('Using mock data', e);
+            renderAll(mockData);
+            setConnected(false);
+        }
+    }
+
+    function setConnected(isOk) {
+        const dot = document.getElementById('status-dot');
+        const txt = document.getElementById('status-text');
+        if (isOk) {
+            dot.classList.add('connected');
+            txt.textContent = 'Live Data';
+        } else {
+            dot.classList.remove('connected');
+            txt.textContent = 'Mock Data (Offline)';
+        }
+    }
+
+    function renderAll(data) {
+        // KPIs
+        document.getElementById('kpi-total').textContent = data.kpis.total;
+        document.getElementById('kpi-transit').textContent = data.kpis.transit;
+        document.getElementById('kpi-delayed').textContent = data.kpis.delayed;
+        
+        const otd = data.kpis.otd;
+        const otdEl = document.getElementById('kpi-otd');
+        const otdIcon = document.getElementById('otd-icon');
+        otdEl.textContent = otd + '%';
+        if (otd > 85) {
+            otdEl.style.color = 'var(--success)';
+            otdIcon.style.color = 'var(--success)';
+        } else if (otd >= 70) {
+            otdEl.style.color = 'var(--warning)';
+            otdIcon.style.color = 'var(--warning)';
+        } else {
+            otdEl.style.color = 'var(--danger)';
+            otdIcon.style.color = 'var(--danger)';
+        }
+
+        // Chart
+        renderChart(data.chart);
+
+        // Shipments
+        const shpTbody = document.getElementById('shipment-tbody');
+        shpTbody.innerHTML = '';
+        data.shipments.forEach(r => {
+            const tr = document.createElement('tr');
+            
+            let statusPillClass = '';
+            let statusLabel = r.status.replace('_', ' ');
+            if (r.status === 'DELIVERED') statusPillClass = 'delivered';
+            if (r.status === 'IN_TRANSIT') statusPillClass = 'in_transit';
+            if (r.status === 'AT_RISK') statusPillClass = 'at_risk';
+            if (r.status === 'DELAYED') statusPillClass = 'delayed';
+            
+            tr.innerHTML = `
+                <td>${r.id}</td>
+                <td>${r.po}</td>
+                <td>${r.carrier}</td>
+                <td>${r.origin} &rarr; ${r.dest}</td>
+                <td>${r.shipDate}</td>
+                <td>${r.eta}</td>
+                <td><span class="pill ${statusPillClass}">${statusLabel}</span></td>
+                <td>${r.daysLeft}</td>
+            `;
+            shpTbody.appendChild(tr);
+        });
+
+        // Summary
+        const sumTbody = document.getElementById('summary-tbody');
+        sumTbody.innerHTML = '';
+        data.summary.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${r.carrier}</strong></td>
+                <td>${r.total}</td>
+                <td>${r.delivered}</td>
+                <td>${r.onTime}</td>
+                <td>${r.otd}</td>
+            `;
+            sumTbody.appendChild(tr);
+        });
+    }
+
+    let windowChart = null;
+        function renderChart(chartData) {
+        const ctx = document.getElementById('carrierChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+        
+        const labels = chartData.map(d => d.carrier);
+        const data = chartData.map(d => d.otd);
+
+        // Varying opacities
+        const opacities = [1, 0.85, 0.7, 0.55, 0.4];
+        const bgColors = opacities.map(o => `rgba(56, 189, 248, ${o})`);
+
+        chartInstance = windowChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'OTD %',
+                    data: data,
+                    backgroundColor: bgColors,
+                    borderRadius: 6,
+                    barThickness: 'flex',
+                    maxBarThickness: 30
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--line') },
+                        ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted') },
+                        min: 0,
+                        max: 100
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--ink') }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateChartTheme() {
+        if (!chartInstance) return;
+        const lineCol = getComputedStyle(document.documentElement).getPropertyValue('--line');
+        const mutedCol = getComputedStyle(document.documentElement).getPropertyValue('--muted');
+        const inkCol = getComputedStyle(document.documentElement).getPropertyValue('--ink');
+        
+        chartInstance.options.scales.x.grid.color = lineCol;
+        chartInstance.options.scales.x.ticks.color = mutedCol;
+        chartInstance.options.scales.y.ticks.color = inkCol;
+        chartInstance.update();
+    }
+
+    async function runAutomation() {
+        const btn = document.getElementById('btn-run');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = `<i data-lucide="loader" class="spin"></i> Running...`;
+        btn.style.opacity = '0.7';
+        lucide.createIcons();
+
+        try {
+            await fetch(`${N8N_BASE_URL}/webhook/run-freight`, { method: 'POST' });
+            setTimeout(() => {
+                btn.innerHTML = `<i data-lucide="check"></i> Success`;
+                lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.style.opacity = '1';
+                    lucide.createIcons();
+                }, 2000);
+            }, 1000);
+        } catch (e) {
+            setTimeout(() => {
+                btn.innerHTML = `<i data-lucide="x"></i> Failed`;
+                lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.style.opacity = '1';
+                    lucide.createIcons();
+                }, 2000);
+            }, 1000);
+        }
+    }
+
+    // Styles for loader
+    const style = document.createElement('style');
+    style.innerHTML = `
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .spin { animation: spin 2s linear infinite; }
+    `;
+    document.head.appendChild(style);
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', loadData);
+</script>
+</body>
+</html>
+
+

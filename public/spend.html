@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procurement Spend Tracker</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root[data-theme="dark"] {
+            --bg: #0B0E14;
+            --surface: #12161F;
+            --surface2: #1A1F2B;
+            --ink: #E8E6E1;
+            --muted: #7A7670;
+            --line: #232836;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        :root[data-theme="light"] {
+            --bg: #F4F5F7;
+            --surface: #FFFFFF;
+            --surface2: #F9FAFB;
+            --ink: #111827;
+            --muted: #6B7280;
+            --line: #D1D5DB;
+            --glass-border: rgba(0, 0, 0, 0.1);
+        }
+
+        :root {
+            --accent: #F472B6; /* Pink */
+            --accent-glow: rgba(244, 114, 182, 0.2);
+            --green: #10B981;
+            --red: #EF4444;
+            --amber: #F59E0B;
+            --blue: #3B82F6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            padding: 24px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--muted);
+        }
+        .status-dot.connected {
+            background-color: var(--green);
+            box-shadow: 0 0 8px var(--green);
+        }
+
+        .run-btn {
+            background-color: var(--accent);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+        }
+
+        .run-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .run-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background-color: var(--surface);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--muted);
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .kpi-icon {
+            color: var(--accent);
+        }
+
+        .text-green { color: var(--green); }
+        .text-red { color: var(--red); }
+        .text-amber { color: var(--amber); }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        
+        @media (max-width: 900px) {
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            padding: 12px 16px;
+            color: var(--muted);
+            font-weight: 500;
+            font-size: 14px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--line);
+            font-size: 14px;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .pill-under { background-color: rgba(16, 185, 129, 0.1); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.2); }
+        .pill-track { background-color: rgba(59, 130, 246, 0.1); color: var(--blue); border: 1px solid rgba(59, 130, 246, 0.2); }
+        .pill-over { background-color: rgba(239, 68, 68, 0.1); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        .ai-card {
+            background: linear-gradient(135deg, var(--surface2) 0%, var(--surface) 100%);
+            border: 1px solid var(--accent-glow);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        
+        .ai-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .ai-text {
+            line-height: 1.6;
+            color: var(--ink);
+        }
+    </style>
+    <script src="config.js"></script>
+</head>
+<body>
+
+
+
+<div class="container">
+    <div class="header">
+        <div class="header-left">
+            <h1 class="title">PROCUREMENT SPEND TRACKER</h1>
+            <div class="status-dot" id="connection-status" title="Connecting to data source..."></div>
+        </div>
+        <button class="run-btn" id="run-automation-btn" onclick="runAutomation()">
+            <i data-lucide="play"></i> Run Automation
+        </button>
+    </div>
+
+    <div class="grid-4" id="kpi-container">
+        <!-- KPI Cards will be rendered here -->
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <h2 class="kpi-header" style="margin-bottom: 16px;">Monthly Spend by Category (Apr-Sep 2026)</h2>
+            <div class="chart-container">
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <h2 class="kpi-header" style="margin-bottom: 16px;">Spend by Supplier (Top 5)</h2>
+            <div class="chart-container">
+                <canvas id="doughnutChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 24px;">
+        <h2 class="kpi-header" style="margin-bottom: 16px;">Monthly Budget vs Actual</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Budget (₹L)</th>
+                        <th>Actual (₹L)</th>
+                        <th>Variance (₹L)</th>
+                        <th>Variance%</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Table rows will be rendered here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card ai-card">
+        <div class="ai-header">
+            <i data-lucide="sparkles"></i> AI Spend Analysis
+        </div>
+        <div class="ai-text">
+            YTD procurement spend is ₹1.85 Cr against a budget of ₹2.36 Cr (78.4% utilization). August saw a 15% budget overrun driven by expedited raw material purchases during monsoon supply disruptions. Raw Materials remain the dominant category at 42% of total spend. Recommendation: Negotiate forward contracts with Bharat Chemicals and Gujarat Oils for Q4 to lock in pricing and avoid repeat overruns.
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Set theme
+    const savedTheme = localStorage.getItem('sc-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    const fallbackData = {
+        kpis: [
+            { title: "Total Spend YTD", value: "₹1.85 Cr", icon: "indian-rupee", class: "" },
+            { title: "Budget Utilization", value: "78.4%", icon: "pie-chart", class: "text-green" },
+            { title: "Top Category", value: "Raw Materials (42%)", icon: "tag", class: "" },
+            { title: "Cost Savings", value: "₹4.2L", icon: "trending-down", class: "text-green" }
+        ],
+        table: [
+            { month: "Apr 2026", budget: 38.0, actual: 35.0, variance: -3.0, varPct: "-7.9%", status: "UNDER" },
+            { month: "May 2026", budget: 38.0, actual: 40.0, variance: 2.0, varPct: "+5.3%", status: "OVER" },
+            { month: "Jun 2026", budget: 38.0, actual: 40.0, variance: 2.0, varPct: "+5.3%", status: "OVER" },
+            { month: "Jul 2026", budget: 40.0, actual: 40.0, variance: 0.0, varPct: "0.0%", status: "ON_TRACK" },
+            { month: "Aug 2026", budget: 40.0, actual: 46.0, variance: 6.0, varPct: "+15.0%", status: "OVER" },
+            { month: "Sep 2026", budget: 42.0, actual: 42.0, variance: 0.0, varPct: "0.0%", status: "ON_TRACK" }
+        ]
+    };
+
+    function renderKPIs(kpis) {
+        const container = document.getElementById('kpi-container');
+        container.innerHTML = kpis.map(kpi => `
+            <div class="card">
+                <div class="kpi-header">
+                    <span>${kpi.title}</span>
+                    <i data-lucide="${kpi.icon}" class="kpi-icon"></i>
+                </div>
+                <div class="kpi-value ${kpi.class}">${kpi.value}</div>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = data.map(row => {
+            const isPos = row.variance > 0;
+            const varColor = isPos ? 'text-red' : (row.variance < 0 ? 'text-green' : '');
+            const varStr = isPos ? `+${row.variance.toFixed(1)}` : row.variance.toFixed(1);
+            
+            let pillClass = '';
+            if (row.status === 'UNDER') pillClass = 'pill-under';
+            else if (row.status === 'ON_TRACK') pillClass = 'pill-track';
+            else if (row.status === 'OVER') pillClass = 'pill-over';
+            
+            return `
+                <tr>
+                    <td>${row.month}</td>
+                    <td>${row.budget.toFixed(1)}</td>
+                    <td>${row.actual.toFixed(1)}</td>
+                    <td class="${varColor}">${varStr}</td>
+                    <td class="${varColor}">${row.varPct}</td>
+                    <td><span class="pill ${pillClass}">${row.status}</span></td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function initCharts() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const textColor = isDark ? '#E8E6E1' : '#111827';
+        const gridColor = isDark ? '#232836' : '#D1D5DB';
+
+        // Bar Chart
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+                datasets: [
+                    { label: 'Raw Materials', data: [18, 20, 22, 19, 24, 21], backgroundColor: '#BE185D' },
+                    { label: 'Packaging', data: [6, 7, 8, 7, 9, 8], backgroundColor: '#DB2777' },
+                    { label: 'Logistics', data: [8, 9, 7, 10, 8, 9], backgroundColor: '#F472B6' },
+                    { label: 'Services', data: [3, 4, 3, 4, 5, 4], backgroundColor: '#FBCFE8' }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true, grid: { display: false }, ticks: { color: textColor } },
+                    y: { stacked: true, grid: { color: gridColor }, ticks: { color: textColor } }
+                },
+                plugins: {
+                    legend: { labels: { color: textColor } }
+                }
+            }
+        });
+
+        // Doughnut Chart
+        const doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
+        new Chart(doughnutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Bharat Chemicals', 'Shakti Steel Corp', 'Gujarat Oils', 'Deccan Foods', 'Others'],
+                datasets: [{
+                    data: [38.2, 28.5, 24.1, 19.8, 74.4],
+                    backgroundColor: ['#9D174D', '#BE185D', '#DB2777', '#F472B6', '#FBCFE8'],
+                    borderWidth: 1,
+                    borderColor: isDark ? '#12161F' : '#FFFFFF'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: textColor } }
+                }
+            }
+        });
+    }
+
+    async function fetchData() {
+        try {
+            const res = await fetch(`${N8N_BASE_URL}/webhook/spend-data?t=` + new Date().getTime());
+            if (!res.ok) throw new Error('Network error');
+            const data = await res.json();
+            // Assuming data contains kpis and table fields like fallbackData
+            renderKPIs(data.kpis || fallbackData.kpis);
+            renderTable(data.table || fallbackData.table);
+            document.getElementById('connection-status').classList.add('connected');
+        } catch (e) {
+            console.warn('Using fallback data', e);
+            renderKPIs(fallbackData.kpis);
+            renderTable(fallbackData.table);
+            document.getElementById('connection-status').classList.remove('connected');
+        }
+    }
+
+    async function runAutomation() {
+        const btn = document.getElementById('run-automation-btn');
+        const origContent = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="lucide-spin"></i> Running...`;
+        lucide.createIcons();
+        
+        try {
+            await fetch(`${N8N_BASE_URL}/webhook/run-spend`, { method: 'POST' });
+            btn.innerHTML = `<i data-lucide="check"></i> Success`;
+        } catch (e) {
+            btn.innerHTML = `<i data-lucide="x"></i> Failed`;
+        }
+        lucide.createIcons();
+        
+        setTimeout(() => {
+            btn.innerHTML = origContent;
+            btn.disabled = false;
+            lucide.createIcons();
+        }, 3000);
+    }
+
+    // Initialize
+    lucide.createIcons();
+    fetchData();
+    initCharts();
+
+    // Listen for theme changes in other tabs
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'sc-theme') {
+            document.documentElement.setAttribute('data-theme', e.newValue || 'dark');
+            // Re-render charts to update colors
+            const barChart = Chart.getChart("barChart");
+            const doughnutChart = Chart.getChart("doughnutChart");
+            if (barChart) barChart.destroy();
+            if (doughnutChart) doughnutChart.destroy();
+            initCharts();
+        }
+    });
+</script>
+
+<style>
+    .lucide-spin { animation: spin 2s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
+</body>
+</html>
+
+

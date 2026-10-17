@@ -1,0 +1,242 @@
+{
+  "name": "PO Automation - Dashboard API",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "dashboard-data",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e0ad7f0e-8139-48ef-949b-769b15f8efee",
+      "name": "Webhook",
+      "webhookId": "a43d043c-6e70-40fb-ad6d-3ae909280c37",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY",
+          "mode": "list",
+          "cachedResultName": "PO_Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1243844616,
+          "mode": "list",
+          "cachedResultName": "PO_Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit#gid=1243844616"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "b4315410-a163-403d-a4fc-2eaba304fc10",
+      "name": "Read PO_Tracker",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY",
+          "mode": "list",
+          "cachedResultName": "PO_Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 529511194,
+          "mode": "list",
+          "cachedResultName": "Execution_Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit#gid=529511194"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        0
+      ],
+      "id": "e0950546-9f73-4dce-95a2-4b9a5f25ab97",
+      "name": "Read Execution_Log",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const trackerRows = $('Read PO_Tracker').all().map(item => item.json);\nconst auditRows = $('Read Execution_Log').all().map(item => item.json);\nconst briefRows = $('Read Risk_Brief').all().map(item => item.json);\n\n// Grab the most recently generated brief (the last row)\nconst latestBrief = briefRows.length > 0 ? briefRows[briefRows.length - 1] : null;\n\nreturn [{\n  json: {\n    tracker: trackerRows,\n    audit_log: auditRows,\n    risk_brief: latestBrief,\n    last_synced: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "id": "e57d1b64-d84c-45c0-b00d-f2e1d485e678",
+      "name": "Code in JavaScript",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1104,
+        0
+      ],
+      "id": "a1ceaf23-6809-4e03-b245-3783919b5171",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY",
+          "mode": "list",
+          "cachedResultName": "PO_Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 377669120,
+          "mode": "list",
+          "cachedResultName": "Risk_Brief",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit#gid=377669120"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        0
+      ],
+      "id": "24ca0735-8a12-4521-8c92-25f92e299676",
+      "name": "Read Risk_Brief",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read PO_Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read PO_Tracker": {
+      "main": [
+        [
+          {
+            "node": "Read Execution_Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Execution_Log": {
+      "main": [
+        [
+          {
+            "node": "Read Risk_Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Risk_Brief": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0c817a31-ff86-483d-a8b6-0ddff4bfcb40",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ddc4a7b5b782d2b811a8149401fe34640fef7febf1f33bcd4e824ce3d854fc2b"
+  },
+  "nodeGroups": [],
+  "id": "SUlRNoAlfXUSFgvx",
+  "tags": []
+}

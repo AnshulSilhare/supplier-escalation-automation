@@ -1,0 +1,355 @@
+{
+  "name": "Daily Operations Digest",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "digest-data",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "dg-get",
+      "name": "GET Digest",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "run-digest",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "dg-run",
+      "name": "Run Digest",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PO_Tracker",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        300,
+        420
+      ],
+      "id": "dg-po",
+      "name": "Read PO Tracker",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Supplier_Scorecard",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        500,
+        420
+      ],
+      "id": "dg-sc",
+      "name": "Read Scorecard",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Quality_Incidents",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        700,
+        420
+      ],
+      "id": "dg-qa",
+      "name": "Read Quality",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const poData = $('Read PO Tracker').all().map(i => i.json);\nconst scData = $('Read Scorecard').all().map(i => i.json);\nconst qaData = $('Read Quality').all().map(i => i.json);\n\nconst today = new Date().toLocaleDateString('en-IN', {weekday:'long', year:'numeric', month:'long', day:'numeric'});\n\nconst activePOs = poData.length;\nconst overduePOs = poData.filter(p => p.Status === 'OVERDUE' || p.Status === 'AI_ESCALATED' || p.Status === 'MANUAL_ESCALATED').length;\n\nconst totalSuppliers = scData.length;\nconst avgOTIF = scData.length ? (scData.reduce((s,r) => s + parseFloat(r.OTIF_Pct||0), 0) / scData.length).toFixed(1) : 0;\nconst atRisk = scData.filter(r => {\n  const otif = parseFloat(r.OTIF_Pct||0);\n  const qual = parseFloat(r.Quality_Pct||0);\n  const score = (otif*0.3 + qual*0.3 + (100-Math.abs(parseFloat(r.Cost_Variance_Pct||0)))*0.2 + (100-parseFloat(r.Avg_Lead_Days||0)*5)*0.2);\n  return score < 70;\n}).length;\n\nconst totalIncidents = qaData.length;\nconst openCases = qaData.filter(q => q.Status === 'OPEN' || q.Status === 'INVESTIGATING').length;\nconst flaggedSuppliers = [...new Set(qaData.filter(q => {\n  const rate = parseFloat(q.Qty_Rejected||0) / (parseFloat(q.Qty_Received)||1) * 100;\n  return rate > 5;\n}).map(q => q.Supplier))].length;\n\nconst health = { active_pos: activePOs, overdue_pos: overduePOs, total_suppliers: totalSuppliers, avg_otif: avgOTIF, at_risk_suppliers: atRisk, total_incidents: totalIncidents, open_quality_cases: openCases, flagged_suppliers: flaggedSuppliers };\n\nconst modules = [\n  { name: 'Escalation Console', status: overduePOs > 0 ? 'alert' : 'healthy', metric: `${activePOs} Active POs, ${overduePOs} overdue`, last_run: 'Live' },\n  { name: 'Supplier Scorecard', status: atRisk > 1 ? 'warning' : 'healthy', metric: `${atRisk} at-risk suppliers`, last_run: 'Live' },\n  { name: 'Quality Tracker', status: flaggedSuppliers > 0 ? 'alert' : 'healthy', metric: `${openCases} open cases, ${flaggedSuppliers} flagged`, last_run: 'Live' }\n];\n\nreturn [{ json: { date: today, health, modules, po_data: poData, scorecard_data: scData, quality_data: qaData, last_updated: new Date().toISOString() } }];"
+      },
+      "id": "dg-compile",
+      "name": "Compile Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        420
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are an operations director's AI assistant. Write a concise morning operations brief (5-7 sentences) based on this supply chain data. Cover: procurement status, supplier health, quality issues, and end with 2-3 priority actions for today. Be specific with numbers. Data: {{ JSON.stringify($input.first().json) }}",
+        "hasOutputParser": false
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1120,
+        420
+      ],
+      "id": "dg-ai",
+      "name": "Generate Brief",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        620
+      ],
+      "id": "dg-gemini",
+      "name": "Gemini Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "q5z2LHOvO4y9vDZx",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const digest = $('Compile Digest').first().json;\nconst aiText = $('Generate Brief').first().json.text || $('Generate Brief').first().json.output || '';\ndigest.ai_narrative = aiText;\nreturn [{ json: digest }];"
+      },
+      "id": "dg-merge",
+      "name": "Merge + AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        420
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "dg-resp",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1560,
+        420
+      ],
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "GET Digest": {
+      "main": [
+        [
+          {
+            "node": "Read PO Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Digest": {
+      "main": [
+        [
+          {
+            "node": "Read PO Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read PO Tracker": {
+      "main": [
+        [
+          {
+            "node": "Read Scorecard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Scorecard": {
+      "main": [
+        [
+          {
+            "node": "Read Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Quality": {
+      "main": [
+        [
+          {
+            "node": "Compile Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Digest": {
+      "main": [
+        [
+          {
+            "node": "Generate Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Brief": {
+      "main": [
+        [
+          {
+            "node": "Merge + AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Brief",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge + AI": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "Control Tower"
+    }
+  ]
+}

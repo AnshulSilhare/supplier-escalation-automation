@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAILY OPS DIGEST</title>
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        :root {
+            /* Base Dark Theme (Default) */
+            --bg: #0B0E14;
+            --surface: #12161F;
+            --surface2: #1A1F2B;
+            --ink: #E8E6E1;
+            --muted: #7A7670;
+            --line: #232836;
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --accent: #4CAF7D;
+            
+            /* Status Colors */
+            --status-green: #4CAF50;
+            --status-amber: #FFC107;
+            --status-red: #F44336;
+            --status-blue: #2196F3;
+            --status-sky: #03A9F4;
+            --status-purple: #9C27B0;
+        }
+
+        [data-theme="light"] {
+            --bg: #F4F5F7;
+            --surface: #FFFFFF;
+            --surface2: #F9FAFB;
+            --ink: #111827;
+            --muted: #6B7280;
+            --line: #D1D5DB;
+            --glass-border: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--ink);
+            line-height: 1.5;
+            padding: 24px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Glassmorphism Card Base */
+        .glass-card {
+            background-color: var(--surface);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            border-bottom: 3px solid var(--accent);
+            padding-bottom: 16px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: var(--muted);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--status-green);
+            box-shadow: 0 0 8px var(--status-green);
+        }
+
+        /* Section 1: KPI Grid */
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin: 32px 0 16px 0;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 480px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .kpi-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .kpi-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--surface2);
+        }
+        
+        .kpi-content h3 {
+            font-size: 0.875rem;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .kpi-content p {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        /* Specific Icon Colors */
+        .icon-blue { color: var(--status-blue); }
+        .icon-red { color: var(--status-red); }
+        .icon-sky { color: var(--status-sky); }
+        .icon-amber { color: var(--status-amber); }
+
+        /* Section 2: Module Status Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        th {
+            font-size: 0.875rem;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        tr {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        tr:hover {
+            background-color: var(--surface2);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background-color: var(--surface2);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .dot.green { background-color: var(--status-green); }
+        .dot.amber { background-color: var(--status-amber); }
+        .dot.red { background-color: var(--status-red); }
+
+        /* Section 3: AI Executive Summary */
+        .summary-content {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--ink);
+        }
+        
+        .summary-content p {
+            margin-bottom: 12px;
+        }
+
+        .summary-content h4 {
+            margin-top: 20px;
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+        
+        .summary-content ol {
+            margin-left: 20px;
+            margin-bottom: 12px;
+        }
+        
+        .summary-content li {
+            margin-bottom: 4px;
+        }
+
+        /* Section 4: Quick Actions */
+        .actions-row {
+            display: flex;
+            gap: 16px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: var(--surface2);
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+
+        .btn-blue { background-color: var(--status-blue); color: white; }
+        .btn-purple { background-color: var(--status-purple); color: white; }
+        
+        /* Loading Overlay */
+        #loading {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(11, 14, 20, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            font-size: 1.2rem;
+            display: none;
+        }
+    </style>
+    <script src="config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header glass-card" style="padding: 16px 24px;">
+            <h1><i data-lucide="coffee" style="color: var(--accent)"></i> Morning Operations Brief — September 27, 2026</h1>
+            <div class="connection-status">
+                <div class="status-dot" id="conn-dot"></div>
+                <span id="conn-text">Connected</span>
+            </div>
+        </div>
+
+        <!-- Section 1: KPI Grid -->
+        <h2 class="section-title"><i data-lucide="activity"></i> Supply Chain Health</h2>
+        <div class="kpi-grid">
+            <div class="kpi-card glass-card">
+                <div class="kpi-icon-wrapper"><i data-lucide="file-text" class="icon-blue"></i></div>
+                <div class="kpi-content">
+                    <h3>Active POs</h3>
+                    <p id="kpi-active">5</p>
+                </div>
+            </div>
+            <div class="kpi-card glass-card">
+                <div class="kpi-icon-wrapper"><i data-lucide="alert-triangle" class="icon-red"></i></div>
+                <div class="kpi-content">
+                    <h3>Overdue POs</h3>
+                    <p id="kpi-overdue">1</p>
+                </div>
+            </div>
+            <div class="kpi-card glass-card">
+                <div class="kpi-icon-wrapper"><i data-lucide="truck" class="icon-sky"></i></div>
+                <div class="kpi-content">
+                    <h3>Shipments In Transit</h3>
+                    <p id="kpi-transit">7</p>
+                </div>
+            </div>
+            <div class="kpi-card glass-card">
+                <div class="kpi-icon-wrapper"><i data-lucide="clock" class="icon-red"></i></div>
+                <div class="kpi-content">
+                    <h3>Delayed Shipments</h3>
+                    <p id="kpi-delayed">3</p>
+                </div>
+            </div>
+            <div class="kpi-card glass-card">
+                <div class="kpi-icon-wrapper"><i data-lucide="shield-alert" class="icon-amber"></i></div>
+                <div class="kpi-content">
+                    <h3>Open Quality Cases</h3>
+                    <p id="kpi-quality">4</p>
+                </div>
+            </div>
+            <div class="kpi-card glass-card">
+                <div class="kpi-icon-wrapper"><i data-lucide="file-warning" class="icon-red"></i></div>
+                <div class="kpi-content">
+                    <h3>Contracts Expiring &lt;30d</h3>
+                    <p id="kpi-contracts">2</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Module Status -->
+        <h2 class="section-title"><i data-lucide="layout-grid"></i> Module Status</h2>
+        <div class="glass-card table-container">
+            <table id="status-table">
+                <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th>Status</th>
+                        <th>Key Metric</th>
+                        <th>Last Run</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Default content -->
+                    <tr>
+                        <td>Escalation Console</td>
+                        <td><div class="status-pill"><div class="dot green"></div>Healthy</div></td>
+                        <td>5 Active POs</td>
+                        <td>2 hrs ago</td>
+                    </tr>
+                    <tr>
+                        <td>Supplier Scorecard</td>
+                        <td><div class="status-pill"><div class="dot amber"></div>Warning</div></td>
+                        <td>2 at-risk suppliers</td>
+                        <td>1 day ago</td>
+                    </tr>
+                    <tr>
+                        <td>Freight Tracker</td>
+                        <td><div class="status-pill"><div class="dot red"></div>Alert</div></td>
+                        <td>3 delayed shipments</td>
+                        <td>4 hrs ago</td>
+                    </tr>
+                    <tr>
+                        <td>Quality Tracker</td>
+                        <td><div class="status-pill"><div class="dot red"></div>Alert</div></td>
+                        <td>1 supplier flagged (>5% defect)</td>
+                        <td>6 hrs ago</td>
+                    </tr>
+                    <tr>
+                        <td>Contract Manager</td>
+                        <td><div class="status-pill"><div class="dot amber"></div>Warning</div></td>
+                        <td>2 expiring in 30 days</td>
+                        <td>1 day ago</td>
+                    </tr>
+                    <tr>
+                        <td>Spend Tracker</td>
+                        <td><div class="status-pill"><div class="dot green"></div>Healthy</div></td>
+                        <td>78.4% budget utilized</td>
+                        <td>1 day ago</td>
+                    </tr>
+                    <tr>
+                        <td>Order Fulfillment</td>
+                        <td><div class="status-pill"><div class="dot green"></div>Healthy</div></td>
+                        <td>88.5% Perfect Order Rate</td>
+                        <td>3 hrs ago</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Section 3: AI Executive Summary -->
+        <h2 class="section-title"><i data-lucide="brain-circuit"></i> AI Executive Summary</h2>
+        <div class="glass-card summary-content" id="ai-summary">
+            <p>Good morning. Your supply chain operations summary for September 27, 2026:</p>
+            
+            <p>📦 <strong>Procurement:</strong> 5 active POs tracked. 1 overdue (PO-2012 from Shakti Steel Corp — 3 days past ETA). The AI risk assessment has auto-drafted an escalation email pending your approval.</p>
+            
+            <p>🚚 <strong>Logistics:</strong> 7 shipments in transit, 3 delayed. GATI carrier shows poorest OTD at 73%. Recommend scheduling a carrier performance review.</p>
+            
+            <p>🔬 <strong>Quality:</strong> 4 open quality cases. Shakti Steel Corp flagged critical with 10% defect rate across 3 incidents. SCAR recommended.</p>
+            
+            <p>📋 <strong>Contracts:</strong> 2 supplier contracts expiring within 34 days (Indus Spice, Kaveri Chemicals). Renewal discussions should be initiated this week.</p>
+            
+            <p>💰 <strong>Spend:</strong> YTD spend at ₹1.85 Cr (78.4% of budget). On track for Q3 but August overrun of 15% needs corrective action.</p>
+            
+            <p>📊 <strong>Fulfillment:</strong> 156 orders processed with 88.5% Perfect Order Rate. Kolkata hub cycle time needs attention.</p>
+            
+            <h4>Priority Actions Today:</h4>
+            <ol>
+                <li>Approve escalation email to Shakti Steel Corp</li>
+                <li>Initiate contract renewal for Indus Spice Traders</li>
+                <li>Schedule carrier review meeting with GATI</li>
+                <li>Review Kolkata warehouse staffing plan</li>
+            </ol>
+        </div>
+
+        <!-- Section 4: Quick Actions -->
+        <div class="actions-row">
+            <button class="btn btn-primary" onclick="runAllAutomations()">
+                <i data-lucide="play"></i> Run All Automations
+            </button>
+            <button class="btn btn-blue" onclick="alert('Exporting PDF...')">
+                <i data-lucide="download"></i> Export PDF Report
+            </button>
+            <button class="btn btn-purple" onclick="alert('Sending digest email...')">
+                <i data-lucide="mail"></i> Send Digest Email
+            </button>
+            <button class="btn btn-secondary" onclick="fetchData()">
+                <i data-lucide="refresh-cw"></i> Refresh Data
+            </button>
+        </div>
+    </div>
+
+    <div id="loading">Running automations...</div>
+
+    <script>
+        // Initialize Theme
+        function initTheme() {
+            const savedTheme = localStorage.getItem('sc-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+        initTheme();
+
+        // Listen for theme changes from parent if in iframe, or standard storage event
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'sc-theme') {
+                document.documentElement.setAttribute('data-theme', e.newValue);
+            }
+        });
+
+        // Initialize Icons
+        lucide.createIcons();
+
+        const GET_WEBHOOK = `${N8N_BASE_URL}/webhook/digest-data`;
+        const POST_WEBHOOK = `${N8N_BASE_URL}/webhook/run-digest`;
+
+        function setConnectionStatus(isOnline) {
+            const dot = document.getElementById('conn-dot');
+            const text = document.getElementById('conn-text');
+            if (isOnline) {
+                dot.style.backgroundColor = 'var(--status-green)';
+                dot.style.boxShadow = '0 0 8px var(--status-green)';
+                text.textContent = 'Live Data';
+            } else {
+                dot.style.backgroundColor = 'var(--status-amber)';
+                dot.style.boxShadow = '0 0 8px var(--status-amber)';
+                text.textContent = 'Mock Data (Offline)';
+            }
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch(GET_WEBHOOK);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                
+                // If the webhook provided data, we could populate it here.
+                // Assuming data structure matches requirements, but for now we fallback nicely.
+                if(data && data.kpis) {
+                   document.getElementById('kpi-active').textContent = data.kpis.active || 5;
+                   // ... update other DOM elements
+                }
+
+                setConnectionStatus(true);
+            } catch (error) {
+                console.log('Using mock data due to fetch error:', error);
+                setConnectionStatus(false);
+                // Keep the hardcoded HTML defaults
+            }
+        }
+
+        async function runAllAutomations() {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'flex';
+            
+            try {
+                // Post to the specific run-digest webhook
+                const response = await fetch(POST_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'run_all', timestamp: new Date().toISOString() })
+                });
+                
+                if (response.ok) {
+                    alert('Automations triggered successfully!');
+                    fetchData(); // Refresh data after run
+                } else {
+                    throw new Error('Webhook error');
+                }
+            } catch (error) {
+                alert('Failed to connect to n8n webhook. Using mock response.');
+                console.error(error);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // Initial Data Fetch
+        document.addEventListener('DOMContentLoaded', fetchData);
+    </script>
+</body>
+</html>

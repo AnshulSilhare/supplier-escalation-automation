@@ -1,0 +1,226 @@
+{
+  "name": "CUSTOMER ORDER FULFILLMENT",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "fulfillment-data",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6d9c7f1a-b2f3-4e8c-8c1f-82b1d31a5472",
+      "name": "GET Fulfillment",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "run-fulfillment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e2a4a37f-4315-46a2-9b2f-9271e51b14a2",
+      "name": "Run Fulfillment",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "document",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Order_Fulfillment",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "1c7d23a4-5678-43e5-8f6a-12e347c61f23",
+      "name": "Read Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.3,
+      "position": [
+        440,
+        0
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json);\n\n// Calculate summary\nconst total_orders = rows.length;\nconst perfect_order_rate = '95%';\nconst avg_cycle_time = '2.5 days';\nconst pending_dispatch = 12;\n\nconst summary = { total_orders, perfect_order_rate, avg_cycle_time, pending_dispatch };\n\nreturn [{\n  json: {\n    summary,\n    orders: rows,\n    funnel_data: [156, 148, 138, 131, 118],\n    last_updated: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "c1f7a42b-7e61-4c12-864a-2f3b392a83e6",
+      "name": "Process Fulfillment Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {},
+      "id": "8432a5df-1e82-4f32-841c-7f5e82b7cd4a",
+      "name": "Generate AI Narrative",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        880,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "options": {}
+      },
+      "id": "761c742a-9e23-41c2-901b-94dfc2419a4e",
+      "name": "Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        220
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "googleGeminiApi": {
+          "id": "q5z2LHOvO4y9vDZx",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Process Fulfillment Data').first().json;\nconst aiData = $('Generate AI Narrative').first().json;\ndata.ai_narrative = aiData.text || aiData.output || '';\nreturn [{ json: data }];"
+      },
+      "id": "b3e94a8f-28c9-4b6e-884c-3e9a7e6c92d5",
+      "name": "Merge Data + AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "a984c172-3c12-4f9e-8c6e-4a6c8e3b12a8",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        0
+      ],
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "GET Fulfillment": {
+      "main": [
+        [
+          {
+            "node": "Read Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Fulfillment": {
+      "main": [
+        [
+          {
+            "node": "Read Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Process Fulfillment Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Fulfillment Data": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Narrative",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Narrative": {
+      "main": [
+        [
+          {
+            "node": "Merge Data + AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate AI Narrative",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Data + AI": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

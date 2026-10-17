@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply Chain AI Control Tower</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        :root {
+            --bg: #0B0E14;
+            --surface: #12161F;
+            --surface2: #1A1F2B;
+            --ink: #E8E6E1;
+            --muted: #7A7670;
+            --line: #232836;
+            --accent: #4F80E2;
+            --accent-glow: rgba(79, 128, 226, 0.25);
+            --card-hover: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.06);
+        }
+
+        [data-theme="light"] {
+            --bg: #F4F6F9;
+            --surface: #FFFFFF;
+            --surface2: #F9FAFB;
+            --ink: #111827;
+            --muted: #6B7280;
+            --line: #E5E7EB;
+            --accent: #2563EB;
+            --accent-glow: rgba(37, 99, 235, 0.15);
+            --card-hover: rgba(0, 0, 0, 0.02);
+            --glass-border: rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            padding: 40px 24px;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: rgba(79, 128, 226, 0.12);
+            border: 1px solid rgba(79, 128, 226, 0.3);
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
+        .title {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: var(--muted);
+            max-width: 680px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .theme-btn {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            color: var(--ink);
+            padding: 10px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .theme-btn:hover {
+            border-color: var(--accent);
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-val {
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .stat-lbl {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        /* Grid */
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--module-accent, var(--accent));
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: var(--module-accent, var(--accent));
+            box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.4);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--icon-bg, rgba(79, 128, 226, 0.12));
+            color: var(--module-accent, var(--accent));
+        }
+
+        .card-tag {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: var(--surface2);
+            color: var(--muted);
+            border: 1px solid var(--line);
+        }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+
+        .card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--module-accent, var(--accent));
+        }
+
+        .card-footer i {
+            transition: transform 0.2s;
+        }
+
+        .card:hover .card-footer i {
+            transform: translateX(4px);
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 60px;
+            padding-top: 24px;
+            border-top: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--muted);
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-links a {
+            color: var(--muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--ink);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div>
+                <div class="brand-badge">
+                    <i data-lucide="cpu" style="width: 14px; height: 14px;"></i>
+                    Autonomous Supply Chain Control Tower
+                </div>
+                <h1 class="title">Operations Intelligence Suite</h1>
+                <p class="subtitle">Multi-tier supply chain orchestration powered by 11 n8n automation workflows, Google Sheets live databases, and Gemini AI narrative intelligence.</p>
+            </div>
+            <div class="header-actions">
+                <button class="theme-btn" onclick="toggleTheme()">
+                    <i data-lucide="sun" id="themeIcon" style="width: 16px; height: 16px;"></i>
+                    <span id="themeText">Light</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(76, 175, 125, 0.12); color: #4CAF7D;">
+                    <i data-lucide="activity"></i>
+                </div>
+                <div>
+                    <div class="stat-val">8 Modules</div>
+                    <div class="stat-lbl">Active Control Dashboards</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(79, 128, 226, 0.12); color: #4F80E2;">
+                    <i data-lucide="git-merge"></i>
+                </div>
+                <div>
+                    <div class="stat-val">11 Workflows</div>
+                    <div class="stat-lbl">n8n Automation Pipelines</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(167, 139, 250, 0.12); color: #A78BFA;">
+                    <i data-lucide="sparkles"></i>
+                </div>
+                <div>
+                    <div class="stat-val">Gemini 3.5</div>
+                    <div class="stat-lbl">AI Narrative & Root Cause</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(245, 158, 11, 0.12); color: #F59E0B;">
+                    <i data-lucide="database"></i>
+                </div>
+                <div>
+                    <div class="stat-val">Google Sheets</div>
+                    <div class="stat-lbl">Live Cloud Database</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modules Grid -->
+        <div class="section-title">
+            <i data-lucide="layers" style="width: 20px; height: 20px; color: var(--accent);"></i>
+            Operations Modules
+        </div>
+
+        <div class="cards-grid">
+            <!-- 1. Daily Ops Digest -->
+            <a href="digest.html" class="card" style="--module-accent: #4CAF7D; --icon-bg: rgba(76, 175, 125, 0.12);">
+                <div>
+                    <div class="card-top">
+                        <div class="card-icon"><i data-lucide="newspaper"></i></div>
+                        <span class="card-tag">Briefing</span>
+                    </div>
+                    <h3 class="card-title">Daily Ops Digest</h3>
+                    <p class="card-desc">Morning executive operations briefing aggregating KPIs across all 7 modules into actionable priority decisions.</p>
+                </div>
+                <div class="card-footer">
+                    <span>Open Dashboard</span>
+                    <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                </div>
+            </a>
+
+            <!-- 2. AI Escalation Console -->
+            <a href="escalation.html" class="card" style="--module-accent: #4F80E2; --icon-bg: rgba(79, 128, 226, 0.12);">
+                <div>
+                    <div class="card-top">
+                        <div class="card-icon"><i data-lucide="shield-alert"></i></div>
+                        <span class="card-tag">Core Engine</span>
+                    </div>
+                    <h3 class="card-title">Escalation Console</h3>
+                    <p class="card-desc">Real-time purchase order monitoring, delay prediction, automated tier escalation, and AI email drafting.</p>
+                </div>
+                <div class="card-footer">
+                    <span>Open Dashboard</span>
+                    <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                </div>
+            </a>
+
+            <!-- 3. Supplier Scorecard -->
+            <a href="scorecard.html" class="card" style="--module-accent: #E5A336; --icon-bg: rgba(229, 163, 54, 0.12);">
+                <div>
+                    <div class="card-top">
+                        <div class="card-icon"><i data-lucide="award"></i></div>
+                        <span class="card-tag">Performance</span>
+                    </div>
+                    <h3 class="card-title">Supplier Scorecard</h3>
+                    <p class="card-desc">Multi-dimensional supplier performance ranking (A-D grades), radar comparisons, and AI commentary.</p>
+                </div>
+                <div class="card-footer">
+                    <span>Open Dashboard</span>
+                    <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                </div>
+            </a>
+
+            <!-- 4. Quality Incident Tracker -->
+            <a href="quality.html" class="card" style="--module-accent: #E05A4F; --icon-bg: rgba(224, 90, 79, 0.12);">
+                <div>
+                    <div class="card-top">
+                        <div class="card-icon"><i data-lucide="alert-octagon"></i></div>
+                        <span class="card-tag">Quality QA</span>
+                    </div>
+                    <h3 class="card-title">Quality Tracker</h3>
+                    <p class="card-desc">Defect rate tracking, defect type breakdown, automated SCAR alerts, and AI-driven root cause analysis.</p>
+                </div>
+                <div class="card-footer">
+                    <span>Open Dashboard</span>
+                    <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                </div>
+            </a>
+
+            <!-- 5. Freight & Shipments -->
+            <a href="freight.html" class="card" style="--module-accent: #38BDF8; --icon-bg: rgba(56, 189, 248, 0.12);">
+                <div>
+                    <div class="card-top">
+                        <div class="card-icon"><i data-lucide="truck"></i></div>
+                        <span class="card-tag">Logistics</span>
+                    </div>
+                    <h3 class="card-title">Freight Tracker</h3>
+                    <p class="card-desc">End-to-end shipment visibility, carrier OTD% benchmarks, route monitoring, and delay risk management.</p>
+                </div>
+                <div class="card-footer">
+                    <span>Open Dashboard</span>
+                    <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                </div>
+            </a>
+
+            <!-- 6. Contract & SLA Manager -->
+            <a href="contracts.html" class="card" style="--module-accent: #A78BFA; --icon-bg: rgba(167, 139, 250, 0.12);">
+                <div>
+                    <div class="card-top">
+                        <div class="card-icon"><i data-lucide="file-check"></i></div>
+                        <span class="card-tag">Compliance</span>
+                    </div>
+                    <h3 class="card-title">Contract Manager</h3>
+                    <p class="card-desc">Lifecycle contract tracking, 30-day expiry radar, SLA coverage verification, and renewal AI recommendations.</p>
+                </div>
+                <div class="card-footer">
+                    <span>Open Dashboard</span>
+                    <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                </div>
+            </a>
+
+            <!-- 7. Procurement Spend Tracker -->
+            <a href="spend.html" class="card" style="--module-accent: #F472B6; --icon-bg: rgba(244, 114, 182, 0.12);">
+                <div>
+                    <div class="card-top">
+                        <div class="card-icon"><i data-lucide="indian-rupee"></i></div>
+                        <span class="card-tag">Financials</span>
+                    </div>
+                    <h3 class="card-title">Spend Tracker</h3>
+                    <p class="card-desc">Monthly procurement budget vs. actual variance analysis, category spend distribution, and cost savings AI.</p>
+                </div>
+                <div class="card-footer">
+                    <span>Open Dashboard</span>
+                    <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                </div>
+            </a>
+
+            <!-- 8. Customer Order Fulfillment -->
+            <a href="fulfillment.html" class="card" style="--module-accent: #FB923C; --icon-bg: rgba(251, 146, 60, 0.12);">
+                <div>
+                    <div class="card-top">
+                        <div class="card-icon"><i data-lucide="package-check"></i></div>
+                        <span class="card-tag">Fulfillment</span>
+                    </div>
+                    <h3 class="card-title">Order Fulfillment</h3>
+                    <p class="card-desc">Warehouse pipeline funnel (Placed → Picked → Shipped → Delivered), Perfect Order Rate, and cycle times.</p>
+                </div>
+                <div class="card-footer">
+                    <span>Open Dashboard</span>
+                    <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                </div>
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div>
+                Built by <strong>Anshul Silhare</strong> &bull; Supply Chain AI Engineering
+            </div>
+            <div class="footer-links">
+                <a href="https://github.com/AnshulSilhare" target="_blank">GitHub</a>
+                <a href="https://www.linkedin.com/in/anshulsilhare" target="_blank">LinkedIn</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        lucide.createIcons();
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('sc-theme', next);
+            updateThemeUI(next);
+        }
+
+        function updateThemeUI(theme) {
+            const isDark = theme === 'dark';
+            document.getElementById('themeIcon').setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+            document.getElementById('themeText').textContent = isDark ? 'Light' : 'Dark';
+            lucide.createIcons();
+        }
+
+        // Init theme from storage
+        const savedTheme = localStorage.getItem('sc-theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1309 @@
+{
+  "name": "PO Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "6a8497ad-9a31-4c51-ac87-bf0f80a7fbb0",
+      "name": "Run Escalation Check",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1024,
+        -688
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit?gid=1243844616#gid=1243844616",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "PO_Tracker",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "e2146fea-8e5c-4746-8497-cd80347ee903",
+      "name": "Read PO Tracker",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -800,
+        -784
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Assess this purchase order for supply-chain / shipment risk.\n\nPO_Number: {{ $json.PO_Number }}\nSupplier_Name: {{ $json.Supplier_Name }}\nSupplier_Email: {{ $json.Supplier_Email }}\nSKU: {{ $json.SKU }}\nQty: {{ $json.Qty }}\nExpected_Date: {{ $json.Expected_Date }}\nASN_Status: {{ $json.ASN_Status }}\nLast_Shipment_Update: {{ $json.Last_Shipment_Update }}\nToday: {{ $now.toFormat('yyyy-MM-dd') }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a supply-chain operations assistant that reviews purchase orders (POs) for shipment risk.\n\nConsider Expected_Date (how close or overdue the delivery is relative to Today), ASN_Status (an empty status or anything other than \"in-transit\"/\"delivered\" is a concern), Last_Shipment_Update (stale updates > 5 days are a concern), Supplier_Name, SKU and Qty.\n\nClassify each PO's risk_level as exactly one of:\n- NORMAL: on track, no supplier communication needed.\n- FOLLOW_UP: minor concern, a polite status request is warranted.\n- ESCALATE: high risk (missing ASN with imminent/overdue ETA, or no movement), an urgent supplier request is required.\n\nReturn these fields:\n- risk_level: NORMAL | FOLLOW_UP | ESCALATE\n- risk_reason: one or two concise sentences explaining the risk.\n- recommended_action: the concrete next step for the buyer.\n- supplier_email_body: For FOLLOW_UP or ESCALATE, write a complete, professional plain-text email to the supplier requesting the required shipment/ASN/ETA information (greeting, PO number, SKU, quantity, the specific information needed, a clear response deadline, and a professional sign-off from the Procurement team). For NORMAL, return an empty string."
+        }
+      },
+      "id": "b92d6364-f9fb-4148-b599-b734913670ba",
+      "name": "Assess PO Risk",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -576,
+        -784
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "5c777d8e-c243-41ab-bb7c-4b7cafc67b59",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -592,
+        -576
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"risk_level\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"FOLLOW_UP\",\"ESCALATE\"]},\"risk_reason\":{\"type\":\"string\"},\"recommended_action\":{\"type\":\"string\"},\"supplier_email_body\":{\"type\":\"string\"}},\"required\":[\"risk_level\",\"risk_reason\",\"recommended_action\",\"supplier_email_body\"]}"
+      },
+      "id": "e864179d-b15a-41ee-bd09-148f5a39478a",
+      "name": "Risk Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -416,
+        -576
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "risk-not-normal",
+              "leftValue": "={{ $json.output.risk_level }}",
+              "rightValue": "NORMAL",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "51cd2ed0-e6cc-4282-b8c9-397455f39228",
+      "name": "Needs Supplier Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        -784
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit?gid=1243844616#gid=1243844616",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "PO_Tracker"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "PO_Number": "={{ $('Read PO Tracker').item.json.PO_Number }}",
+            "Last_Action": "Reviewed - no action required",
+            "_risk_reason": "={{ $json.output.risk_reason }}",
+            "internal_note": "No supplier communication required",
+            "Runway_History": "={{ ($json.Runway_History ? $json.Runway_History + ', ' : '') + $json.Inventory_Days }}"
+          },
+          "matchingColumns": [
+            "PO_Number"
+          ],
+          "schema": [
+            {
+              "id": "PO_Number",
+              "displayName": "PO_Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Supplier_Name",
+              "displayName": "Supplier_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Supplier_Email",
+              "displayName": "Supplier_Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "SKU",
+              "displayName": "SKU",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty",
+              "displayName": "Qty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Expected_Date",
+              "displayName": "Expected_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ASN_Status",
+              "displayName": "ASN_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last_Shipment_Update",
+              "displayName": "Last_Shipment_Update",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Buyer_Owner_Email",
+              "displayName": "Buyer_Owner_Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last_Action",
+              "displayName": "Last_Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "_risk_reason",
+              "displayName": "_risk_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "supplier_email_body",
+              "displayName": "supplier_email_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "internal_note",
+              "displayName": "internal_note",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Supplier_OTD",
+              "displayName": "Supplier_OTD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Inventory_Days",
+              "displayName": "Inventory_Days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Material_Criticality",
+              "displayName": "Material_Criticality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Runway_History",
+              "displayName": "Runway_History",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f1c19925-08c8-487e-bab9-7e03c758f20d",
+      "name": "Update Sheet (No Action)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        800,
+        -656
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -1024,
+        -880
+      ],
+      "id": "9263c737-aa50-4cb5-b05c-900679a24306",
+      "name": "Schedule Trigger",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY",
+          "mode": "list",
+          "cachedResultName": "PO_Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 529511194,
+          "mode": "list",
+          "cachedResultName": "Execution_Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit#gid=529511194"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "PO_Number": "={{ $('Read PO Tracker').item.json.PO_Number }}",
+            "Risk_Level": "={{ $('Assess PO Risk').item.json.output.risk_level }}",
+            "Action_Taken": "None",
+            "Approval_Status": "N/A - Auto Passed",
+            "Notes": "={{ $('Assess PO Risk').item.json.output.risk_reason }}",
+            "AI_Flag_Date": "={{ $now.toFormat('yyyy-MM-dd') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PO_Number",
+              "displayName": "PO_Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Risk_Level",
+              "displayName": "Risk_Level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Action_Taken",
+              "displayName": "Action_Taken",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Approval_Status",
+              "displayName": "Approval_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI_Flag_Date",
+              "displayName": "AI_Flag_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1024,
+        -656
+      ],
+      "id": "73492de7-97e9-4c0e-a5da-8e755ce5371d",
+      "name": "Log No Action",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Scan the cached tracker data for the first critical PO\nconst trackerItems = $('Read PO Tracker').all();\nconst escalated = trackerItems.find(item => \n    item.json.ASN_Status === 'Pending' || item.json.Inventory_Days < 3\n);\n\nconst target = escalated ? escalated.json.Supplier_Name : \"Global Supply Chain Logistics\";\nreturn { json: { target_supplier: target } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -912
+      ],
+      "id": "6ef91272-47c1-4b10-9144-edcd5a85e486",
+      "name": "Identify Target Supplier",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Helper to safely read output from nodes that might not have run in this execution\nfunction getSafeItems(nodeName) {\n  try {\n    return $(nodeName).all() || [];\n  } catch (error) {\n    return [];\n  }\n}\n\nconst sentItems = getSafeItems('Log Email Sent');\nconst declinedItems = getSafeItems('Log Declined Escalation');\nconst failedItems = getSafeItems('Log Email Failed');\nconst noActionItems = getSafeItems('Log No Action');\n\nconst totalEvaluated = sentItems.length + declinedItems.length + failedItems.length + noActionItems.length;\n\nreturn [{\n  json: {\n    run_date: new Date().toLocaleDateString('en-GB'),\n    total_evaluated: totalEvaluated,\n    emails_sent_count: sentItems.length,\n    declined_count: declinedItems.length,\n    failed_count: failedItems.length,\n    no_action_count: noActionItems.length,\n    sent_po_list: sentItems.map(item => item.json.PO_Number || 'N/A').join(', ') || 'None',\n    declined_po_list: declinedItems.map(item => item.json.PO_Number || 'N/A').join(', ') || 'None'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        -784
+      ],
+      "id": "291e3d04-d140-4403-9428-09731286641b",
+      "name": "Calculates run stats",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "sendTo": "anshulsilhare25@gmail.com",
+        "subject": "=[Daily Recap] PO Escalation Run Summary \u2013 {{ $json.run_date }}",
+        "message": "=<div style=\"font-family: sans-serif; line-height: 1.5; color: #333;\">   <h3 style=\"color: #0052cc; margin-bottom: 8px;\">Daily PO Escalation Execution Summary</h3>   <p>The automated procurement check has concluded for <strong>{{ $json.run_date }}</strong>.</p>    <table style=\"border-collapse: collapse; width: 100%; max-width: 480px; margin: 16px 0;\">     <tr style=\"border-bottom: 1px solid #eee;\">       <td style=\"padding: 6px 0;\"><strong>Total POs Evaluated:</strong></td>       <td style=\"padding: 6px 0; text-align: right;\">{{ $json.total_evaluated }}</td>     </tr>     <tr style=\"border-bottom: 1px solid #eee;\">       <td style=\"padding: 6px 0; color: #0d8a43;\"><strong>Supplier Emails Approved & Sent:</strong></td>       <td style=\"padding: 6px 0; text-align: right; color: #0d8a43;\"><strong>{{ $json.emails_sent_count }}</strong></td>     </tr>     <tr style=\"border-bottom: 1px solid #eee;\">       <td style=\"padding: 6px 0; color: #d9381e;\"><strong>Escalations Declined:</strong></td>       <td style=\"padding: 6px 0; text-align: right; color: #d9381e;\"><strong>{{ $json.declined_count }}</strong></td>     </tr>     <tr style=\"border-bottom: 1px solid #eee;\">       <td style=\"padding: 6px 0;\"><strong>No Action Needed (On-Track):</strong></td>       <td style=\"padding: 6px 0; text-align: right;\">{{ $json.no_action_count }}</td>     </tr>     <tr>       <td style=\"padding: 6px 0; color: #c92a2a;\"><strong>Dispatch Failures:</strong></td>       <td style=\"padding: 6px 0; text-align: right;\">{{ $json.failed_count }}</td>     </tr>   </table>    <p style=\"font-size: 13px; color: #666;\">     \u2022 Approved POs: {{ $json.sent_po_list }}<br/>     \u2022 Declined POs: {{ $json.declined_po_list }}   </p>    <p style=\"font-size: 12px; color: #888; margin-top: 20px;\">     All line-item audit events have been appended to the <code>Execution_Log</code> sheet tab.   </p> </div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1696,
+        -784
+      ],
+      "id": "2ada8c83-0dd1-41a0-9641-ffcc3f4af32f",
+      "name": "Sends the Daily Recap email",
+      "webhookId": "82a1c9aa-4eca-4f67-9128-2be6a27e0569",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "q6BUDv91kVNmioTh",
+          "name": "Gmail account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "q": "={{ $fromAI('Search_Query__q_', 'The specific search query to find recent supply chain disruptions, strikes, or financial news about the target supplier', 'string') }}",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApiTool",
+      "typeVersion": 1,
+      "position": [
+        400,
+        -640
+      ],
+      "id": "7cfe498c-98a0-4029-a014-e880bd8229b6",
+      "name": "Google search in SerpApi",
+      "credentials": {
+        "serpApi": {
+          "id": "bkQFIrroHea8hY7g",
+          "name": "SerpApi account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        -672
+      ],
+      "id": "725ac1bc-ef7f-42d4-b214-792eb985bb17",
+      "name": "Google Gemini Chat Model",
+      "notesInFlow": false,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "q5z2LHOvO4y9vDZx",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Target supplier: {{ $('Identify Target Supplier').item.json.target_supplier }}\n\nStep 1: Use your search tool to find the most recent news regarding this supplier.\nStep 2: Synthesize your findings into a strictly formatted intelligence brief using exactly these headers:\n\n### Verified Facts\n[List 3-4 concrete facts found in your search with their sources]\n\n### Operational Inferences\n[Deduce how these facts might impact lead times or production]\n\n### Prescribed Countermeasures\n[Suggest 2 tactical supply chain actions to mitigate this specific risk]\n\nIf you find no negative news, state that the supplier appears operationally stable based on current web data.",
+        "options": {
+          "systemMessage": "You are an elite Supply Chain Risk Intelligence Analyst. \nYour role is to research supply chain disruptions, financial instability, strikes, delays, or logistics risks for specific suppliers.\nDo not include any greeting or conversational filler\u2014only output the required markdown format."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        -912
+      ],
+      "id": "9c7b774a-cbb7-46ee-b7d5-f26a2225d68d",
+      "name": "Research Supplier Risk",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY",
+          "mode": "list",
+          "cachedResultName": "PO_Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 377669120,
+          "mode": "list",
+          "cachedResultName": "Risk_Brief",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit#gid=377669120"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Supplier_Name": "={{ $('Identify Target Supplier').item.json.target_supplier }}",
+            "Last_Updated": "={{ $now.toISO() }}",
+            "Brief_Content": "={{ $json.output }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Supplier_Name",
+              "displayName": "Supplier_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Brief_Content",
+              "displayName": "Brief_Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last_Updated",
+              "displayName": "Last_Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        576,
+        -912
+      ],
+      "id": "a4781201-e72b-414c-8813-b44952c45611",
+      "name": "Save Briefs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY",
+          "mode": "list",
+          "cachedResultName": "PO_Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1243844616,
+          "mode": "list",
+          "cachedResultName": "PO_Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit#gid=1243844616"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ASN_Status": "Pending Approval",
+            "PO_Number": "={{ $('Read PO Tracker').item.json.PO_Number }}"
+          },
+          "matchingColumns": [
+            "PO_Number"
+          ],
+          "schema": [
+            {
+              "id": "PO_Number",
+              "displayName": "PO_Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Supplier_Name",
+              "displayName": "Supplier_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Supplier_Email",
+              "displayName": "Supplier_Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SKU",
+              "displayName": "SKU",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Qty",
+              "displayName": "Qty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Expected_Date",
+              "displayName": "Expected_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ASN_Status",
+              "displayName": "ASN_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last_Shipment_Update",
+              "displayName": "Last_Shipment_Update",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Buyer_Owner_Email",
+              "displayName": "Buyer_Owner_Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last_Action",
+              "displayName": "Last_Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "_risk_reason",
+              "displayName": "_risk_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_email_body",
+              "displayName": "supplier_email_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "internal_note",
+              "displayName": "internal_note",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Supplier_OTD",
+              "displayName": "Supplier_OTD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Inventory_Days",
+              "displayName": "Inventory_Days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Material_Criticality",
+              "displayName": "Material_Criticality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Runway_History",
+              "displayName": "Runway_History",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        800,
+        -912
+      ],
+      "id": "b45c7941-0d4d-44e3-a6f6-447b7bcd22ee",
+      "name": "Flag PO as Pending",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY",
+          "mode": "list",
+          "cachedResultName": "PO_Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 529511194,
+          "mode": "list",
+          "cachedResultName": "Execution_Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Vmn2HdHiL1h2z0vxY4KM8c5BaGTz7VDFRrHBHpX7niY/edit#gid=529511194"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "PO_Number": "={{ $('Read PO Tracker').item.json.PO_Number }}",
+            "Action_Taken": "Pending Human Approval",
+            "Risk_Level": "={{ $('Assess PO Risk').item.json.output.risk_level }}",
+            "Drafted_Email": "={{ $('Assess PO Risk').item.json.output.draft_email }}",
+            "Notes": "={{ $('Assess PO Risk').item.json.output.risk_reason }}",
+            "Supplier_Name": "={{ $('Read PO Tracker').item.json.Supplier_Name }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PO_Number",
+              "displayName": "PO_Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Risk_Level",
+              "displayName": "Risk_Level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Action_Taken",
+              "displayName": "Action_Taken",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Approval_Status",
+              "displayName": "Approval_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI_Flag_Date",
+              "displayName": "AI_Flag_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Drafted_Email",
+              "displayName": "Drafted_Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Supplier_Name",
+              "displayName": "Supplier_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1024,
+        -912
+      ],
+      "id": "29e920fa-a38b-4ee9-9fed-c31f3461915e",
+      "name": "Log Pending Escalation",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BAQOyTX5ZoXCMwEF",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1248,
+        -784
+      ],
+      "id": "b969e0b4-cda0-4658-a9b3-0be1dc0ee4f4",
+      "name": "Merge Results",
+      "executeOnce": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Run Escalation Check": {
+      "main": [
+        [
+          {
+            "node": "Read PO Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read PO Tracker": {
+      "main": [
+        [
+          {
+            "node": "Assess PO Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assess PO Risk": {
+      "main": [
+        [
+          {
+            "node": "Needs Supplier Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Assess PO Risk",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Risk Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Assess PO Risk",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Supplier Email?": {
+      "main": [
+        [
+          {
+            "node": "Identify Target Supplier",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Sheet (No Action)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read PO Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Sheet (No Action)": {
+      "main": [
+        [
+          {
+            "node": "Log No Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculates run stats": {
+      "main": [
+        [
+          {
+            "node": "Sends the Daily Recap email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sends the Daily Recap email": {
+      "main": [
+        []
+      ]
+    },
+    "Identify Target Supplier": {
+      "main": [
+        [
+          {
+            "node": "Research Supplier Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google search in SerpApi": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Supplier Risk",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Research Supplier Risk",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Supplier Risk": {
+      "main": [
+        [
+          {
+            "node": "Save Briefs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Briefs": {
+      "main": [
+        [
+          {
+            "node": "Flag PO as Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log No Action": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Flag PO as Pending": {
+      "main": [
+        [
+          {
+            "node": "Log Pending Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Pending Escalation": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Calculates run stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "SRZ6CxNYNXH1hrAZ",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "701287a8-26b0-4240-8563-500f17650586",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ddc4a7b5b782d2b811a8149401fe34640fef7febf1f33bcd4e824ce3d854fc2b"
+  },
+  "nodeGroups": [],
+  "id": "mBmzzYPYxEXkOP2W",
+  "tags": []
+}
