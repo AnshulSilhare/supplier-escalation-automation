@@ -1,7 +1,6 @@
 // Central Configuration for Control Tower n8n API endpoints
 // Automatically detects environment: localhost vs deployed Render service
-
-const N8N_PRODUCTION_URL = 'https://n8n-automation-control-tower.onrender.com'; // Update with your Render n8n service URL once deployed
+const N8N_PRODUCTION_URL = 'https://n8n-control-tower-wwxc.onrender.com';
 
 const N8N_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:5678'
