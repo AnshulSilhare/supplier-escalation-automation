@@ -92,7 +92,7 @@
     },
     {
       "parameters": {
-        "model": "gemini-1.5-flash",
+        "modelName": "models/gemini-3.5-flash-lite",
         "options": {}
       },
       "id": "761c742a-9e23-41c2-901b-94dfc2419a4e",
