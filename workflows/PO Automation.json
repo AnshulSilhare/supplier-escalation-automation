@@ -570,28 +570,6 @@
     },
     {
       "parameters": {
-        "q": "={{ $fromAI('Search_Query__q_', 'The specific search query to find recent supply chain disruptions, strikes, or financial news about the target supplier', 'string') }}",
-        "additionalFields": {},
-        "requestOptions": {}
-      },
-      "type": "n8n-nodes-serpapi.serpApiTool",
-      "typeVersion": 1,
-      "position": [
-        400,
-        -640
-      ],
-      "id": "7cfe498c-98a0-4029-a014-e880bd8229b6",
-      "name": "Google search in SerpApi",
-      "credentials": {
-        "serpApi": {
-          "id": "bkQFIrroHea8hY7g",
-          "name": "SerpApi account"
-        }
-      },
-      "executeOnce": true
-    },
-    {
-      "parameters": {
         "modelName": "models/gemini-3.5-flash-lite",
         "options": {}
       },
@@ -615,7 +593,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Target supplier: {{ $('Identify Target Supplier').item.json.target_supplier }}\n\nStep 1: Use your search tool to find the most recent news regarding this supplier.\nStep 2: Synthesize your findings into a strictly formatted intelligence brief using exactly these headers:\n\n### Verified Facts\n[List 3-4 concrete facts found in your search with their sources]\n\n### Operational Inferences\n[Deduce how these facts might impact lead times or production]\n\n### Prescribed Countermeasures\n[Suggest 2 tactical supply chain actions to mitigate this specific risk]\n\nIf you find no negative news, state that the supplier appears operationally stable based on current web data.",
+        "text": "=Target supplier: {{ $('Identify Target Supplier').item.json.target_supplier }}\n\nStep 1: Analyze known supply chain disruptions, market dynamics, and operational profile for this supplier.\nStep 2: Synthesize your findings into a strictly formatted intelligence brief using exactly these headers:\n\n### Verified Facts\n[List 3-4 concrete facts found in your search with their sources]\n\n### Operational Inferences\n[Deduce how these facts might impact lead times or production]\n\n### Prescribed Countermeasures\n[Suggest 2 tactical supply chain actions to mitigate this specific risk]\n\nIf you find no negative news, state that the supplier appears operationally stable based on current web data.",
         "options": {
           "systemMessage": "You are an elite Supply Chain Risk Intelligence Analyst. \nYour role is to research supply chain disruptions, financial instability, strikes, delays, or logistics risks for specific suppliers.\nDo not include any greeting or conversational filler\u2014only output the required markdown format."
         }
@@ -1195,17 +1173,6 @@
           {
             "node": "Research Supplier Risk",
             "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Google search in SerpApi": {
-      "ai_tool": [
-        [
-          {
-            "node": "Research Supplier Risk",
-            "type": "ai_tool",
             "index": 0
           }
         ]
