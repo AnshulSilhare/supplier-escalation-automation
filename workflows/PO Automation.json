@@ -1045,6 +1045,67 @@
       "id": "b969e0b4-cda0-4658-a9b3-0be1dc0ee4f4",
       "name": "Merge Results",
       "executeOnce": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "run-po-automation",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "po-run-webhook",
+      "name": "Webhook Run Automation",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1024,
+        -500
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"started\", \"message\": \"PO Automation triggered successfully\"}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "po-run-respond",
+      "name": "Respond Run Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -800,
+        -500
+      ]
     }
   ],
   "pinData": {},
@@ -1243,6 +1304,22 @@
           {
             "node": "Assess PO Risk",
             "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Run Automation": {
+      "main": [
+        [
+          {
+            "node": "Read PO Tracker",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond Run Webhook",
+            "type": "main",
             "index": 0
           }
         ]
