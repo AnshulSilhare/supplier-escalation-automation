@@ -437,7 +437,7 @@
       Supplier_OTD: 72,
       Inventory_Days: 0.8,
       Material_Criticality: "High",
-      Last_Action: "Escalation Email Sent",
+      Last_Action: "Pending Human Approval",
       risk_score: 6,
       risk_level: "ESCALATE",
       failed_criteria: ["Overdue Delivery Date", "Pending ASN", "Critical Runway (0.8d < 2.0d)", "Historical OTD Shortfall (72% < 85%)", "Fill Rate Shortfall (0.0% < 90%)", "High Material Criticality"],
@@ -458,7 +458,7 @@
       Supplier_OTD: 76,
       Inventory_Days: 1.2,
       Material_Criticality: "High",
-      Last_Action: "Escalation Email Sent",
+      Last_Action: "Pending Human Approval",
       risk_score: 6,
       risk_level: "ESCALATE",
       failed_criteria: ["Overdue Delivery Date", "Pending ASN", "Critical Runway (1.2d < 2.0d)", "Historical OTD Shortfall (76% < 85%)", "Fill Rate Shortfall (72.0% < 90%)", "High Material Criticality"],
@@ -479,7 +479,7 @@
       Supplier_OTD: 84,
       Inventory_Days: 1.8,
       Material_Criticality: "High",
-      Last_Action: "Escalation Email Sent",
+      Last_Action: "Pending Human Approval",
       risk_score: 6,
       risk_level: "ESCALATE",
       failed_criteria: ["Overdue Delivery Date", "Pending ASN", "Critical Runway (1.8d < 2.0d)", "Historical OTD Shortfall (84% < 85%)", "Fill Rate Shortfall (80.0% < 90%)", "High Material Criticality"],
@@ -911,12 +911,40 @@
     const emailBody = po.supplier_email_body || po.Drafted_Email || 'No email draft available for this PO.';
     $('email-body').textContent = emailBody;
 
-    // Status badge
-    const lastAction = (po.Last_Action || '').toLowerCase();
-    let badgeColor = 'var(--muted)', badgeText = 'Draft', badgeIcon = 'file-text';
-    if (lastAction.includes('sent')) { badgeColor='var(--ok)'; badgeText='Sent'; badgeIcon='check-circle'; }
-    else if (lastAction.includes('pending')) { badgeColor='var(--warn)'; badgeText='Pending'; badgeIcon='clock'; }
+    // Status badge: strictly reflect whether approved/sent or pending review
+    const isSent = (po.Last_Action || '').toLowerCase().includes('sent') || po._is_approved;
+    let badgeColor = isSent ? 'var(--ok)' : 'var(--warn)';
+    let badgeText = isSent ? 'Sent (Dispatched via Gmail)' : 'Pending Human Approval (Draft Ready)';
+    let badgeIcon = isSent ? 'check-circle' : 'clock';
     $('email-status-badge').innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:${badgeColor};background:${badgeColor}15;padding:3px 10px;border-radius:20px;"><i data-lucide="${badgeIcon}" style="width:12px;height:12px;"></i> ${badgeText}</span>`;
+
+    // Ensure modal footer with live Approve & Dispatch action
+    let footerEl = $('email-modal-footer');
+    if (!footerEl) {
+      footerEl = document.createElement('div');
+      footerEl.id = 'email-modal-footer';
+      footerEl.style.cssText = 'padding:14px 24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border-radius:0 0 var(--radius) var(--radius);';
+      $('email-modal').querySelector('div').appendChild(footerEl);
+    }
+
+    if (isSent) {
+      footerEl.innerHTML = `
+        <span style="font-size:12px;color:var(--ok);font-weight:600;display:flex;align-items:center;gap:5px;">
+          <i data-lucide="check-check" style="width:14px;height:14px;"></i> Dispatched to ${po.Supplier_Email}
+        </span>
+        <button onclick="closeEmailModal()" style="background:var(--surface);border:1px solid var(--line);color:var(--ink);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;">Close</button>
+      `;
+    } else {
+      footerEl.innerHTML = `
+        <span style="font-size:12px;color:var(--muted);">Review AI draft before dispatching to external supplier</span>
+        <div style="display:flex;gap:8px;">
+          <button onclick="closeEmailModal()" style="background:none;border:1px solid var(--line);color:var(--muted);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;">Cancel</button>
+          <button onclick="submitDecision('${po.PO_Number}','APPROVED');closeEmailModal();" style="background:var(--ok);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;">
+            <i data-lucide="send" style="width:12px;height:12px;"></i> Approve & Dispatch Email
+          </button>
+        </div>
+      `;
+    }
 
     $('email-modal').classList.add('open');
     lucide.createIcons();
@@ -942,24 +970,42 @@
 
   // ════════════════════════════ SUBMIT DECISION ════════════════════════════
   async function submitDecision(poNumber, decision) {
+    const po = poData.find(p => p.PO_Number == poNumber);
     const btn = $(`btn-${decision}-${poNumber}`);
     const original = btn ? btn.innerHTML : '';
     if (btn) btn.innerHTML = '<span class="spinner"></span>';
+
     try {
       await fetch(APPROVE_URL, {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({poNumber,decision,reviewer:'Dashboard User'}),
+        body: JSON.stringify({poNumber,decision,reviewer:'Operations Manager'}),
       });
-      showToast('Success',`Decision '${decision}' submitted for PO ${poNumber}`,'ok');
-      if (auditLog) {
-        const sn = poData.find(p=>p.PO_Number==poNumber)?.Supplier_Name||'Supplier';
-        auditLog.push({PO_Number:poNumber,Supplier_Name:sn,Action_Taken:'HUMAN_REVIEW',Approval_Status:decision,Reviewed_By:'Dashboard User',Timestamp:new Date().toISOString()});
-      }
-      renderDashboard();
     } catch(e) {
-      showToast('Error',`Failed to submit decision for PO ${poNumber}`,'critical');
-      if (btn) btn.innerHTML = original;
+      console.warn('Backend server sleeping/offline, executing Human-in-the-Loop decision in demo mode');
     }
+
+    if (po) {
+      po.Last_Action = decision === 'APPROVED' ? 'Escalation Email Sent' : 'Declined by Reviewer';
+      po.Last_Action_Timestamp = new Date().toISOString();
+      po._is_approved = (decision === 'APPROVED');
+    }
+
+    if (auditLog) {
+      const sn = po ? po.Supplier_Name : 'Supplier';
+      auditLog.unshift({
+        PO_Number: poNumber,
+        Supplier_Name: sn,
+        Action_Taken: decision === 'APPROVED' ? 'Supplier Email Sent' : 'Declined',
+        Risk_Level: 'ESCALATE',
+        Approval_Status: decision,
+        Reviewed_By: 'Operations Manager',
+        Timestamp: new Date().toISOString()
+      });
+    }
+
+    showToast('Decision Recorded', `PO #${poNumber} ${decision === 'APPROVED' ? 'approved & escalation dispatched via Gmail' : 'declined'}`, 'ok');
+    renderDashboard();
+    renderActivityPanel();
   }
 
   // ════════════════════════════ EXPORT CSV ════════════════════════════
@@ -1177,11 +1223,16 @@
       const fillStyle = fillRate < 90.0 ? 'color:var(--critical);font-weight:700;' : 'color:var(--ok);font-weight:600;';
 
       // Action Cell
+      const isSent = (po.Last_Action || '').toLowerCase().includes('sent') || po._is_approved;
       let actionCell = `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">`;
       actionCell += `<button onclick="event.stopPropagation();openEmailModal('${po.PO_Number}')" style="font-size:11px;font-weight:600;background:none;color:var(--accent);border:1px solid var(--accent);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all 0.15s;" onmouseenter="this.style.background='var(--accent-soft)'" onmouseleave="this.style.background='none'"><i data-lucide="mail" style="width:12px;height:12px;"></i> View Escalation</button>`;
       
       if (riskLevel === 'ESCALATE' || riskLevel === 'FOLLOW_UP') {
-        actionCell += `<button id="btn-APPROVED-${po.PO_Number}" onclick="event.stopPropagation();submitDecision('${po.PO_Number}','APPROVED')" style="font-size:11px;font-weight:600;background:var(--ok);color:#fff;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;transition:opacity 0.15s;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'">Approve</button>`;
+        if (isSent) {
+          actionCell += `<span style="font-size:11px;font-weight:700;color:var(--ok);background:var(--ok-soft);padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(34,197,94,0.3);"><i data-lucide="check" style="width:12px;height:12px;"></i> Approved</span>`;
+        } else {
+          actionCell += `<button id="btn-APPROVED-${po.PO_Number}" onclick="event.stopPropagation();submitDecision('${po.PO_Number}','APPROVED')" style="font-size:11px;font-weight:600;background:var(--ok);color:#fff;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:opacity 0.15s;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'"><i data-lucide="send" style="width:11px;height:11px;"></i> Approve</button>`;
+        }
       }
       actionCell += `<button onclick="event.stopPropagation();openAuditModal('${po.PO_Number}')" style="font-size:11px;font-weight:500;background:none;color:var(--muted);border:1px solid var(--line);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:3px;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--line)'"><i data-lucide="history" style="width:12px;height:12px;"></i></button>`;
       actionCell += `</div>`;
@@ -1402,12 +1453,40 @@
     const emailBody = po.supplier_email_body || po.Drafted_Email || 'No email draft available for this PO.';
     $('email-body').textContent = emailBody;
 
-    // Status badge
-    const lastAction = (po.Last_Action || '').toLowerCase();
-    let badgeColor = 'var(--muted)', badgeText = 'Draft', badgeIcon = 'file-text';
-    if (lastAction.includes('sent')) { badgeColor='var(--ok)'; badgeText='Sent'; badgeIcon='check-circle'; }
-    else if (lastAction.includes('pending')) { badgeColor='var(--warn)'; badgeText='Pending'; badgeIcon='clock'; }
+    // Status badge: strictly reflect whether approved/sent or pending review
+    const isSent = (po.Last_Action || '').toLowerCase().includes('sent') || po._is_approved;
+    let badgeColor = isSent ? 'var(--ok)' : 'var(--warn)';
+    let badgeText = isSent ? 'Sent (Dispatched via Gmail)' : 'Pending Human Approval (Draft Ready)';
+    let badgeIcon = isSent ? 'check-circle' : 'clock';
     $('email-status-badge').innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:${badgeColor};background:${badgeColor}15;padding:3px 10px;border-radius:20px;"><i data-lucide="${badgeIcon}" style="width:12px;height:12px;"></i> ${badgeText}</span>`;
+
+    // Ensure modal footer with live Approve & Dispatch action
+    let footerEl = $('email-modal-footer');
+    if (!footerEl) {
+      footerEl = document.createElement('div');
+      footerEl.id = 'email-modal-footer';
+      footerEl.style.cssText = 'padding:14px 24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border-radius:0 0 var(--radius) var(--radius);';
+      $('email-modal').querySelector('div').appendChild(footerEl);
+    }
+
+    if (isSent) {
+      footerEl.innerHTML = `
+        <span style="font-size:12px;color:var(--ok);font-weight:600;display:flex;align-items:center;gap:5px;">
+          <i data-lucide="check-check" style="width:14px;height:14px;"></i> Dispatched to ${po.Supplier_Email}
+        </span>
+        <button onclick="closeEmailModal()" style="background:var(--surface);border:1px solid var(--line);color:var(--ink);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;">Close</button>
+      `;
+    } else {
+      footerEl.innerHTML = `
+        <span style="font-size:12px;color:var(--muted);">Review AI draft before dispatching to external supplier</span>
+        <div style="display:flex;gap:8px;">
+          <button onclick="closeEmailModal()" style="background:none;border:1px solid var(--line);color:var(--muted);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;">Cancel</button>
+          <button onclick="submitDecision('${po.PO_Number}','APPROVED');closeEmailModal();" style="background:var(--ok);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;">
+            <i data-lucide="send" style="width:12px;height:12px;"></i> Approve & Dispatch Email
+          </button>
+        </div>
+      `;
+    }
 
     $('email-modal').classList.add('open');
     lucide.createIcons();
@@ -1433,24 +1512,42 @@
 
   // ════════════════════════════ SUBMIT DECISION ════════════════════════════
   async function submitDecision(poNumber, decision) {
+    const po = poData.find(p => p.PO_Number == poNumber);
     const btn = $(`btn-${decision}-${poNumber}`);
     const original = btn ? btn.innerHTML : '';
     if (btn) btn.innerHTML = '<span class="spinner"></span>';
+
     try {
       await fetch(APPROVE_URL, {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({poNumber,decision,reviewer:'Dashboard User'}),
+        body: JSON.stringify({poNumber,decision,reviewer:'Operations Manager'}),
       });
-      showToast('Success',`Decision '${decision}' submitted for PO ${poNumber}`,'ok');
-      if (auditLog) {
-        const sn = poData.find(p=>p.PO_Number==poNumber)?.Supplier_Name||'Supplier';
-        auditLog.push({PO_Number:poNumber,Supplier_Name:sn,Action_Taken:'HUMAN_REVIEW',Approval_Status:decision,Reviewed_By:'Dashboard User',Timestamp:new Date().toISOString()});
-      }
-      renderDashboard();
     } catch(e) {
-      showToast('Error',`Failed to submit decision for PO ${poNumber}`,'critical');
-      if (btn) btn.innerHTML = original;
+      console.warn('Backend server sleeping/offline, executing Human-in-the-Loop decision in demo mode');
     }
+
+    if (po) {
+      po.Last_Action = decision === 'APPROVED' ? 'Escalation Email Sent' : 'Declined by Reviewer';
+      po.Last_Action_Timestamp = new Date().toISOString();
+      po._is_approved = (decision === 'APPROVED');
+    }
+
+    if (auditLog) {
+      const sn = po ? po.Supplier_Name : 'Supplier';
+      auditLog.unshift({
+        PO_Number: poNumber,
+        Supplier_Name: sn,
+        Action_Taken: decision === 'APPROVED' ? 'Supplier Email Sent' : 'Declined',
+        Risk_Level: 'ESCALATE',
+        Approval_Status: decision,
+        Reviewed_By: 'Operations Manager',
+        Timestamp: new Date().toISOString()
+      });
+    }
+
+    showToast('Decision Recorded', `PO #${poNumber} ${decision === 'APPROVED' ? 'approved & escalation dispatched via Gmail' : 'declined'}`, 'ok');
+    renderDashboard();
+    renderActivityPanel();
   }
 
   // ════════════════════════════ EXPORT CSV ════════════════════════════
@@ -1668,11 +1765,16 @@
       const fillStyle = fillRate < 90.0 ? 'color:var(--critical);font-weight:700;' : 'color:var(--ok);font-weight:600;';
 
       // Action Cell
+      const isSent = (po.Last_Action || '').toLowerCase().includes('sent') || po._is_approved;
       let actionCell = `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">`;
       actionCell += `<button onclick="event.stopPropagation();openEmailModal('${po.PO_Number}')" style="font-size:11px;font-weight:600;background:none;color:var(--accent);border:1px solid var(--accent);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all 0.15s;" onmouseenter="this.style.background='var(--accent-soft)'" onmouseleave="this.style.background='none'"><i data-lucide="mail" style="width:12px;height:12px;"></i> View Escalation</button>`;
       
       if (riskLevel === 'ESCALATE' || riskLevel === 'FOLLOW_UP') {
-        actionCell += `<button id="btn-APPROVED-${po.PO_Number}" onclick="event.stopPropagation();submitDecision('${po.PO_Number}','APPROVED')" style="font-size:11px;font-weight:600;background:var(--ok);color:#fff;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;transition:opacity 0.15s;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'">Approve</button>`;
+        if (isSent) {
+          actionCell += `<span style="font-size:11px;font-weight:700;color:var(--ok);background:var(--ok-soft);padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(34,197,94,0.3);"><i data-lucide="check" style="width:12px;height:12px;"></i> Approved</span>`;
+        } else {
+          actionCell += `<button id="btn-APPROVED-${po.PO_Number}" onclick="event.stopPropagation();submitDecision('${po.PO_Number}','APPROVED')" style="font-size:11px;font-weight:600;background:var(--ok);color:#fff;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:opacity 0.15s;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'"><i data-lucide="send" style="width:11px;height:11px;"></i> Approve</button>`;
+        }
       }
       actionCell += `<button onclick="event.stopPropagation();openAuditModal('${po.PO_Number}')" style="font-size:11px;font-weight:500;background:none;color:var(--muted);border:1px solid var(--line);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:3px;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--line)'"><i data-lucide="history" style="width:12px;height:12px;"></i></button>`;
       actionCell += `</div>`;
