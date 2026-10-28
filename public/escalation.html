@@ -1238,7 +1238,7 @@
 
   <!-- ════════════════════════════ WORKFLOW ARCHITECTURE MODAL ════════════════════════════ -->
   <div id="workflow-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;">
-    <div class="glass-card" style="width:100%;max-width:920px;max-height:90vh;overflow-y:auto;padding:28px;border-radius:16px;position:relative;background:var(--surface);border:1px solid var(--line);box-shadow:0 24px 48px rgba(0,0,0,0.3);">
+    <div class="glass-card" style="width:100%;max-width:1020px;max-height:90vh;overflow-y:auto;padding:28px;border-radius:16px;position:relative;background:var(--surface);border:1px solid var(--line);box-shadow:0 24px 48px rgba(0,0,0,0.3);">
       
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:1px solid var(--line);padding-bottom:16px;">
         <div>
@@ -1270,38 +1270,46 @@
       </div>
 
       <!-- Architecture Pipeline Diagram -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:16px;margin-bottom:24px;">
+      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px;margin-bottom:18px;">
         
         <!-- Stage 1 -->
-        <div style="background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:16px;">
-          <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Stage 1: Ingestion</div>
-          <div style="font-weight:700;font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:6px;"><i data-lucide="clock" style="width:16px;height:16px;color:var(--accent);"></i> Daily Trigger & Sheets</div>
-          <p style="font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5;">Fires daily at 08:00 AM (or manual webhook) and reads Google Sheet <code>PO_Tracker</code> across 19 operational columns.</p>
-          <div style="font-size:11px;background:var(--surface);padding:6px 10px;border-radius:6px;border:1px solid var(--line);font-family:monospace;color:var(--ink);">Nodes: ScheduleTrigger, Read PO Tracker</div>
+        <div style="background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:12px 12px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Stage 1: Ingestion</div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px;display:flex;align-items:center;gap:5px;color:var(--ink);"><i data-lucide="clock" style="width:14px;height:14px;color:var(--accent);flex-shrink:0;"></i> Daily Trigger & Sheets</div>
+            <p style="font-size:11.5px;color:var(--muted);margin:0 0 8px;line-height:1.4;">Fires daily at 08:00 AM (or manual webhook) and reads Google Sheet <code>PO_Tracker</code> across 19 operational columns.</p>
+          </div>
+          <div style="font-size:10px;background:var(--surface);padding:4px 8px;border-radius:5px;border:1px solid var(--line);font-family:monospace;color:var(--ink);">Nodes: ScheduleTrigger, Read PO Tracker</div>
         </div>
 
         <!-- Stage 2 -->
-        <div style="background:var(--surface2);border:1px solid var(--critical);border-radius:12px;padding:16px;">
-          <div style="font-size:11px;font-weight:700;color:var(--critical);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Stage 2: Risk Scoring</div>
-          <div style="font-weight:700;font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:6px;"><i data-lucide="shield-alert" style="width:16px;height:16px;color:var(--critical);"></i> 6-Criteria Engine</div>
-          <p style="font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5;">Evaluates Overdue Date, Pending ASN, Runway &lt;2d, OTD &lt;85%, Fill Rate &lt;90%, High Criticality. Assigns 0-6 score.</p>
-          <div style="font-size:11px;background:var(--surface);padding:6px 10px;border-radius:6px;border:1px solid var(--line);font-family:monospace;color:var(--ink);">Node: Evaluate 6 Risk Criteria</div>
+        <div style="background:var(--surface2);border:1px solid var(--critical);border-radius:10px;padding:12px 12px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--critical);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Stage 2: Risk Scoring</div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px;display:flex;align-items:center;gap:5px;color:var(--ink);"><i data-lucide="shield-alert" style="width:14px;height:14px;color:var(--critical);flex-shrink:0;"></i> 6-Criteria Engine</div>
+            <p style="font-size:11.5px;color:var(--muted);margin:0 0 8px;line-height:1.4;">Evaluates Overdue Date, Pending ASN, Runway &lt;2d, OTD &lt;85%, Fill Rate &lt;90%, High Criticality. Assigns 0-6 score.</p>
+          </div>
+          <div style="font-size:10px;background:var(--surface);padding:4px 8px;border-radius:5px;border:1px solid var(--line);font-family:monospace;color:var(--ink);">Node: Evaluate 6 Risk Criteria</div>
         </div>
 
         <!-- Stage 3 -->
-        <div style="background:var(--surface2);border:1px solid var(--warn);border-radius:12px;padding:16px;">
-          <div style="font-size:11px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Stage 3: Decision Routing</div>
-          <div style="font-weight:700;font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:6px;"><i data-lucide="git-fork" style="width:16px;height:16px;color:var(--warn);"></i> IF Conditional Filter</div>
-          <p style="font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5;">Bypasses <code>NORMAL</code> POs to auto-pass logging. Routes <code>FOLLOW_UP</code> and <code>ESCALATE</code> to remediation.</p>
-          <div style="font-size:11px;background:var(--surface);padding:6px 10px;border-radius:6px;border:1px solid var(--line);font-family:monospace;color:var(--ink);">Nodes: Needs Supplier Email?, Update Sheet</div>
+        <div style="background:var(--surface2);border:1px solid var(--warn);border-radius:10px;padding:12px 12px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Stage 3: Decision Routing</div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px;display:flex;align-items:center;gap:5px;color:var(--ink);"><i data-lucide="git-fork" style="width:14px;height:14px;color:var(--warn);flex-shrink:0;"></i> IF Conditional Filter</div>
+            <p style="font-size:11.5px;color:var(--muted);margin:0 0 8px;line-height:1.4;">Bypasses <code>NORMAL</code> POs to auto-pass logging. Routes <code>FOLLOW_UP</code> and <code>ESCALATE</code> to remediation.</p>
+          </div>
+          <div style="font-size:10px;background:var(--surface);padding:4px 8px;border-radius:5px;border:1px solid var(--line);font-family:monospace;color:var(--ink);">Nodes: Needs Supplier Email?, Update Sheet</div>
         </div>
 
         <!-- Stage 4 -->
-        <div style="background:var(--surface2);border:1px solid var(--ok);border-radius:12px;padding:16px;">
-          <div style="font-size:11px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Stage 4: AI & Dispatch</div>
-          <div style="font-weight:700;font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:6px;"><i data-lucide="mail-check" style="width:16px;height:16px;color:var(--ok);"></i> Gemini AI & Email</div>
-          <p style="font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5;">Auto-drafts targeted escalation emails citing exact runway, SKU, and OTIF failure. Dispatches via Gmail with audit logging.</p>
-          <div style="font-size:11px;background:var(--surface);padding:6px 10px;border-radius:6px;border:1px solid var(--line);font-family:monospace;color:var(--ink);">Nodes: Gemini Chat Model, Log Execution</div>
+        <div style="background:var(--surface2);border:1px solid var(--ok);border-radius:10px;padding:12px 12px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Stage 4: AI & Dispatch</div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px;display:flex;align-items:center;gap:5px;color:var(--ink);"><i data-lucide="mail-check" style="width:14px;height:14px;color:var(--ok);flex-shrink:0;"></i> Gemini AI & Email</div>
+            <p style="font-size:11.5px;color:var(--muted);margin:0 0 8px;line-height:1.4;">Auto-drafts targeted escalation emails citing exact runway, SKU, and OTIF failure. Dispatches via Gmail with audit logging.</p>
+          </div>
+          <div style="font-size:10px;background:var(--surface);padding:4px 8px;border-radius:5px;border:1px solid var(--line);font-family:monospace;color:var(--ink);">Nodes: Gemini Chat Model, Log Execution</div>
         </div>
 
       </div>
