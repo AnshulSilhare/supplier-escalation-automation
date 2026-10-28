@@ -80,8 +80,8 @@
         "text": "=Here is the freight data summary: {{$json.summary}}. Please write a short narrative report analyzing this data."
       },
       "name": "Generate AI Narrative",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
       "position": [
         600,
         100
@@ -90,12 +90,12 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.5-flash-lite",
+        "modelName": "models/gemini-1.5-flash",
         "options": {}
       },
       "name": "Gemini Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1.1,
+      "typeVersion": 1.2,
       "position": [
         600,
         300
@@ -110,7 +110,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const data = $('Process Freight Data').first().json;\nconst aiData = $('Generate AI Narrative').first().json;\ndata.ai_narrative = aiData.text || aiData.output || '';\nreturn [{ json: data }];"
+        "jsCode": "const sd = $getWorkflowStaticData('global');\nlet baseData = $('Process Freight Data').first().json;\nlet aiText = '';\ntry {\n  const aiOut = $('Generate AI Narrative').first().json;\n  aiText = aiOut.text || aiOut.output || '';\n  if (aiText) {\n    sd.ai_narrative = aiText;\n    sd.ai_ts = Date.now();\n  }\n} catch (e) {\n  aiText = sd.ai_narrative || '';\n}\nif (!aiText && sd.ai_narrative) aiText = sd.ai_narrative;\nbaseData.ai_narrative = aiText;\nreturn [{ json: baseData }];"
       },
       "name": "Merge Data + AI",
       "type": "n8n-nodes-base.code",
@@ -134,6 +134,53 @@
         100
       ],
       "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Free-tier guard: reuse the last AI text for 6 hours; a POST 'Run' forces a refresh.\nconst sd = $getWorkflowStaticData('global');\nconst data = $input.first().json;\nconst TTL_MS = 6 * 3600 * 1000;\nlet forced = false; try { forced = $('Run Freight').isExecuted; } catch (e) {}\nconst fresh = !forced && !!sd.ai_narrative && !!sd.ai_ts && (Date.now() - sd.ai_ts) < TTL_MS;\nreturn [{ json: { ...data, _cache_fresh: fresh } }];"
+      },
+      "id": "cache-check-freig",
+      "name": "AI Cache Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fresh",
+              "leftValue": "={{ $json._cache_fresh }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cache-if-freig",
+      "name": "AI Cache Fresh?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        -20
+      ]
     }
   ],
   "connections": {
@@ -174,7 +221,7 @@
       "main": [
         [
           {
-            "node": "Generate AI Narrative",
+            "node": "AI Cache Check",
             "type": "main",
             "index": 0
           }
@@ -208,6 +255,35 @@
         [
           {
             "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Cache Check": {
+      "main": [
+        [
+          {
+            "node": "AI Cache Fresh?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Cache Fresh?": {
+      "main": [
+        [
+          {
+            "node": "Merge Data + AI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate AI Narrative",
             "type": "main",
             "index": 0
           }

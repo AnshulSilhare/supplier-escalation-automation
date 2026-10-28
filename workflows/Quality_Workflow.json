@@ -104,8 +104,8 @@
         "text": "You are a quality assurance analyst. Based on these quality incident records, perform a root cause analysis. Identify the most problematic supplier, the dominant defect pattern, whether it's systematic or random, and recommend 3 specific corrective actions. Data: {{ JSON.stringify($input.first().json) }}",
         "hasOutputParser": false
       },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
       "position": [
         920,
         400
@@ -117,11 +117,11 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.5-flash-lite",
+        "modelName": "models/gemini-1.5-flash",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1.1,
+      "typeVersion": 1.2,
       "position": [
         920,
         600

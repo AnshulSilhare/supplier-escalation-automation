@@ -8,8 +8,8 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -1024,
-        -688
+        -800,
+        420
       ],
       "executeOnce": true
     },
@@ -32,8 +32,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        -800,
-        -784
+        -540,
+        420
       ],
       "retryOnFail": true,
       "waitBetweenTries": 2000,
@@ -60,11 +60,11 @@
       },
       "id": "b92d6364-f9fb-4148-b599-b734913670ba",
       "name": "Assess PO Risk",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
       "position": [
-        576,
-        -912
+        260,
+        360
       ],
       "retryOnFail": true,
       "waitBetweenTries": 5000,
@@ -72,16 +72,16 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.5-flash-lite",
+        "modelName": "models/gemini-1.5-flash",
         "options": {}
       },
       "id": "5c777d8e-c243-41ab-bb7c-4b7cafc67b59",
       "name": "Google Gemini Chat Model (PO Risk)",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1.1,
+      "typeVersion": 1.2,
       "position": [
-        560,
-        -704
+        160,
+        520
       ],
       "credentials": {
         "googlePalmApi": {
@@ -100,8 +100,8 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        736,
-        -704
+        360,
+        520
       ]
     },
     {
@@ -134,8 +134,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -224,
-        -784
+        -20,
+        420
       ]
     },
     {
@@ -175,8 +175,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        800,
-        -656
+        260,
+        720
       ],
       "retryOnFail": true,
       "waitBetweenTries": 2000,
@@ -200,8 +200,8 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.4,
       "position": [
-        -1024,
-        -880
+        -800,
+        240
       ],
       "id": "9263c737-aa50-4cb5-b05c-900679a24306",
       "name": "Schedule Trigger",
@@ -244,8 +244,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1024,
-        -656
+        540,
+        720
       ],
       "id": "73492de7-97e9-4c0e-a5da-8e755ce5371d",
       "name": "Log No Action",
@@ -263,8 +263,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        0,
-        -1242
+        260,
+        100
       ],
       "id": "6ef91272-47c1-4b10-9144-edcd5a85e486",
       "name": "Identify Target Supplier",
@@ -277,8 +277,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1472,
-        -784
+        1320,
+        500
       ],
       "id": "291e3d04-d140-4403-9428-09731286641b",
       "name": "Calculates run stats",
@@ -294,8 +294,8 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        1696,
-        -784
+        1560,
+        500
       ],
       "id": "2ada8c83-0dd1-41a0-9641-ffcc3f4af32f",
       "name": "Sends the Daily Recap email",
@@ -310,14 +310,14 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.5-flash-lite",
+        "modelName": "models/gemini-1.5-flash",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1.1,
+      "typeVersion": 1.2,
       "position": [
-        224,
-        -1002
+        540,
+        -60
       ],
       "id": "725ac1bc-ef7f-42d4-b214-792eb985bb17",
       "name": "Google Gemini Chat Model",
@@ -337,11 +337,11 @@
           "systemMessage": "You are an elite Supply Chain Risk Intelligence Analyst. \nYour role is to research supply chain disruptions, financial instability, strikes, delays, or logistics risks for specific suppliers.\nDo not include any greeting or conversational filler\u2014only output the required markdown format.\nYou have NO web or search access. Never claim to have searched or cite sources you cannot verify; base the brief on general knowledge and label each fact (unverified)."
         }
       },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
       "position": [
-        224,
-        -1242
+        540,
+        100
       ],
       "id": "9c7b774a-cbb7-46ee-b7d5-f26a2225d68d",
       "name": "Research Supplier Risk",
@@ -412,8 +412,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        576,
-        -1242
+        800,
+        100
       ],
       "id": "a4781201-e72b-414c-8813-b44952c45611",
       "name": "Save Briefs",
@@ -465,8 +465,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        800,
-        -912
+        540,
+        360
       ],
       "id": "b45c7941-0d4d-44e3-a6f6-447b7bcd22ee",
       "name": "Flag PO as Pending",
@@ -515,8 +515,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1024,
-        -912
+        800,
+        360
       ],
       "id": "29e920fa-a38b-4ee9-9fed-c31f3461915e",
       "name": "Log Pending Escalation",
@@ -532,8 +532,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        1248,
-        -784
+        1080,
+        500
       ],
       "id": "b969e0b4-cda0-4658-a9b3-0be1dc0ee4f4",
       "name": "Merge Results",
@@ -548,8 +548,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        480,
-        200
+        -280,
+        420
       ]
     },
     {
@@ -563,8 +563,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -224,
-        -160
+        -800,
+        600
       ],
       "id": "run-hook-0001",
       "name": "Run via Webhook"
@@ -572,7 +572,29 @@
   ],
   "pinData": {},
   "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read PO Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Run Escalation Check": {
+      "main": [
+        [
+          {
+            "node": "Read PO Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run via Webhook": {
       "main": [
         [
           {
@@ -594,12 +616,46 @@
         ]
       ]
     },
-    "Assess PO Risk": {
+    "Evaluate 6 Risk Criteria": {
       "main": [
         [
           {
-            "node": "Flag PO as Pending",
+            "node": "Needs Supplier Email?",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Supplier Email?": {
+      "main": [
+        [
+          {
+            "node": "Assess PO Risk",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Identify Target Supplier",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Sheet (No Action)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model (PO Risk)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Assess PO Risk",
+            "type": "ai_languageModel",
             "index": 0
           }
         ]
@@ -616,65 +672,37 @@
         ]
       ]
     },
-    "Needs Supplier Email?": {
+    "Assess PO Risk": {
       "main": [
         [
           {
-            "node": "Identify Target Supplier",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Assess PO Risk",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Update Sheet (No Action)",
+            "node": "Flag PO as Pending",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Schedule Trigger": {
+    "Flag PO as Pending": {
       "main": [
         [
           {
-            "node": "Read PO Tracker",
+            "node": "Log Pending Escalation",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Update Sheet (No Action)": {
+    "Log Pending Escalation": {
       "main": [
         [
           {
-            "node": "Log No Action",
+            "node": "Merge Results",
             "type": "main",
             "index": 0
           }
         ]
-      ]
-    },
-    "Calculates run stats": {
-      "main": [
-        [
-          {
-            "node": "Sends the Daily Recap email",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sends the Daily Recap email": {
-      "main": [
-        []
       ]
     },
     "Identify Target Supplier": {
@@ -710,6 +738,17 @@
         ]
       ]
     },
+    "Update Sheet (No Action)": {
+      "main": [
+        [
+          {
+            "node": "Log No Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Log No Action": {
       "main": [
         [
@@ -717,28 +756,6 @@
             "node": "Merge Results",
             "type": "main",
             "index": 1
-          }
-        ]
-      ]
-    },
-    "Flag PO as Pending": {
-      "main": [
-        [
-          {
-            "node": "Log Pending Escalation",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Log Pending Escalation": {
-      "main": [
-        [
-          {
-            "node": "Merge Results",
-            "type": "main",
-            "index": 0
           }
         ]
       ]
@@ -754,37 +771,20 @@
         ]
       ]
     },
-    "Google Gemini Chat Model (PO Risk)": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Assess PO Risk",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Evaluate 6 Risk Criteria": {
+    "Calculates run stats": {
       "main": [
         [
           {
-            "node": "Needs Supplier Email?",
+            "node": "Sends the Daily Recap email",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Run via Webhook": {
+    "Sends the Daily Recap email": {
       "main": [
-        [
-          {
-            "node": "Read PO Tracker",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     }
   },
