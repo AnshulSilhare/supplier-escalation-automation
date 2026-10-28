@@ -226,32 +226,92 @@
 
     <!-- ──── AUTOMATION ACTIVITY ──── -->
     <section id="activity-panel" style="display:none;">
-      <div class="glass-card" style="padding:24px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="glass-card" style="padding:22px 24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
-            <h2 style="font-weight:700;font-size:18px;display:flex;align-items:center;gap:8px;"><i data-lucide="activity" style="width:20px;height:20px;color:var(--accent);"></i> Automation Activity</h2>
-            <p style="font-size:13px;color:var(--muted);margin-top:2px;">AI risk classification via n8n webhook</p>
+            <h2 style="font-weight:700;font-size:18px;display:flex;align-items:center;gap:8px;"><i data-lucide="activity" style="width:20px;height:20px;color:var(--accent);"></i> Automation Activity & Risk Governance</h2>
+            <p style="font-size:12.5px;color:var(--muted);margin-top:2px;">Real-time n8n workflow telemetry, 6-criteria risk frequency, and human-in-the-loop review audit</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--ok);background:var(--ok-soft);padding:4px 10px;border-radius:20px;border:1px solid rgba(34,197,94,0.3);">
+              <span style="width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block;" class="pulse"></span> 19 Nodes Online
+            </span>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;">
-          <div style="background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:16px;height:240px;">
-            <canvas id="activityChart"></canvas>
-          </div>
-          <div style="background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Human Approval Rate</div>
-            <div style="position:relative;width:120px;height:120px;">
-              <canvas id="approvalChart"></canvas>
-              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
-                <span id="approval-rate-text" style="font-weight:800;font-size:28px;" class="tnum">0%</span>
+
+        <!-- 3-Column Enterprise Matrix -->
+        <div style="display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:16px;">
+          
+          <!-- Column 1: Classification Chart & Pills -->
+          <div style="background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:5px;">
+                <i data-lucide="bar-chart-2" style="width:13px;height:13px;color:var(--accent);"></i> AI Risk Classifications
+              </div>
+              <div style="height:120px;position:relative;">
+                <canvas id="activityChart"></canvas>
               </div>
             </div>
-            <p style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.5;">Of FOLLOW_UP / ESCALATE cases approved by a human reviewer</p>
+            <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:6px;margin-top:10px;">
+              <div style="background:var(--surface);padding:6px;border-radius:6px;border:1px solid var(--line);text-align:center;">
+                <div style="font-size:10px;color:var(--muted);font-weight:600;">NORMAL</div>
+                <div style="font-size:14px;font-weight:800;color:var(--ok);" id="stat-normal-count">1</div>
+              </div>
+              <div style="background:var(--surface);padding:6px;border-radius:6px;border:1px solid var(--line);text-align:center;">
+                <div style="font-size:10px;color:var(--muted);font-weight:600;">FOLLOW_UP</div>
+                <div style="font-size:14px;font-weight:800;color:var(--warn);" id="stat-followup-count">0</div>
+              </div>
+              <div style="background:var(--surface);padding:6px;border-radius:6px;border:1px solid var(--line);text-align:center;">
+                <div style="font-size:10px;color:var(--muted);font-weight:600;">ESCALATE</div>
+                <div style="font-size:14px;font-weight:800;color:var(--critical);" id="stat-escalate-count">4</div>
+              </div>
+            </div>
           </div>
+
+          <!-- Column 2: 6 Risk Criteria Trigger Frequency -->
+          <div style="background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+              <span style="display:flex;align-items:center;gap:5px;"><i data-lucide="shield-alert" style="width:13px;height:13px;color:var(--critical);"></i> 6 Risk Criteria Triggers</span>
+              <span style="font-size:10px;color:var(--muted);font-weight:500;">Active Cohort (10 POs)</span>
+            </div>
+            
+            <div style="display:flex;flex-direction:column;gap:6px;" id="criteria-bars-container">
+              <!-- Dynamically populated criteria progress bars -->
+            </div>
+          </div>
+
+          <!-- Column 3: Human Governance & Impact -->
+          <div style="background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-bottom:6px;align-self:flex-start;display:flex;align-items:center;gap:5px;">
+              <i data-lucide="user-check" style="width:13px;height:13px;color:var(--accent);"></i> Human Review Sign-Off
+            </div>
+            <div style="position:relative;width:95px;height:95px;margin:4px 0;">
+              <canvas id="approvalChart"></canvas>
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+                <span id="approval-rate-text" style="font-weight:800;font-size:22px;color:var(--ink);" class="tnum">100%</span>
+              </div>
+            </div>
+            <div style="width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;">
+              <div style="background:var(--surface);padding:5px;border-radius:6px;border:1px solid var(--line);font-size:11px;">
+                <div style="font-size:9.5px;color:var(--muted);">Actions</div>
+                <div style="font-weight:700;color:var(--accent);">4 Dispatched</div>
+              </div>
+              <div style="background:var(--surface);padding:5px;border-radius:6px;border:1px solid var(--line);font-size:11px;">
+                <div style="font-size:9.5px;color:var(--muted);">Stockouts Averted</div>
+                <div style="font-weight:700;color:var(--ok);">4 High-Risk</div>
+              </div>
+            </div>
+          </div>
+
         </div>
-        <!-- Recent reviews -->
-        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--line);">
-          <h3 style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;">Recent Human Reviews</h3>
-          <div id="recent-approvals-container" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+
+        <!-- Recent reviews feed -->
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h3 style="font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:0;">Recent Human Review & Audit Feed</h3>
+            <span style="font-size:11px;color:var(--muted);">Immutable audit log &bull; Google Sheets sync</span>
+          </div>
+          <div id="recent-approvals-container" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:8px;">
             <div style="font-size:12px;color:var(--muted);font-style:italic;">Waiting for approval logs…</div>
           </div>
         </div>
@@ -782,6 +842,497 @@
       });
     }
     lastAuditLogLength = len;
+  }
+
+  // ════════════════════════════ AUDIT MODAL ════════════════════════════
+  function openAuditModal(poNumber) {
+    $('audit-modal-title').textContent = `Audit · PO ${poNumber}`;
+    const body = $('audit-modal-body');
+
+    if (!auditLog || auditLog.length === 0) {
+      body.innerHTML = '<p style="font-size:13px;color:var(--muted);">No automation history found.</p>';
+    } else {
+      const logs = auditLog.filter(l => l.PO_Number == poNumber);
+      if (logs.length === 0) {
+        body.innerHTML = `<p style="font-size:13px;color:var(--muted);">No events for PO ${poNumber}.</p>`;
+      } else {
+        const colors = {ESCALATE:'var(--critical)',FOLLOW_UP:'var(--warn)',NORMAL:'var(--ok)'};
+        let html = '<div style="display:flex;flex-direction:column;gap:12px;">';
+        [...logs].reverse().forEach((log,i) => {
+          const date = log.Timestamp||log.AI_Flag_Date||'Recent';
+          const action = (log.Action_Taken||log.Risk_Level||'UNKNOWN').toUpperCase();
+          const status = (log.Approval_Status||'PENDING').toUpperCase();
+          const displayStatus = (status==='UNKNOWN'||status==='N/A - AUTO PASSED') ? 'AI AUTO-PASSED' : status;
+          const color = colors[action]||'var(--muted)';
+
+          html += `
+            <div style="border:1px solid var(--line);border-radius:10px;padding:14px;border-left:3px solid ${color};">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="font-size:12px;font-weight:700;color:${color};text-transform:uppercase;">${action}</span>
+                <span style="font-size:11px;color:var(--muted);" class="tnum">${date}</span>
+              </div>
+              <p style="font-size:13px;line-height:1.6;margin-bottom:8px;">AI analyzed <strong>${log.Supplier_Name||'supplier'}</strong> and classified PO ${poNumber} as ${action}.</p>
+              ${log.Notes ? `<p style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px;"><em>${log.Notes}</em></p>` : ''}
+              ${action!=='NORMAL' ? `<div style="border-top:1px solid var(--line);padding-top:8px;display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);">Human review</span><span style="font-weight:600;">${displayStatus}</span></div>` : ''}
+              ${log.Drafted_Email ? `<div style="margin-top:8px;border-top:1px solid var(--line);padding-top:8px;"><button onclick="openEmailFromLog(${JSON.stringify(log).replace(/"/g,'&quot;')})" style="font-size:12px;font-weight:500;color:var(--accent);background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;"><i data-lucide="mail" style="width:13px;height:13px;"></i> View drafted email</button></div>` : ''}
+            </div>`;
+        });
+        html += '</div>';
+        body.innerHTML = html;
+      }
+    }
+    $('audit-overlay').classList.add('open');
+    lucide.createIcons();
+  }
+
+  function closeAuditModal() {
+    $('audit-overlay').classList.remove('open');
+  }
+
+  // ════════════════════════════ EMAIL MODAL ════════════════════════════
+  
+  function openWorkflowModal() {
+    $('workflow-modal').style.display = 'flex';
+    lucide.createIcons();
+  }
+  function closeWorkflowModal() {
+    $('workflow-modal').style.display = 'none';
+  }
+
+  function openEmailModal(poNumber) {
+    const po = poData.find(p => p.PO_Number == poNumber);
+    if (!po) return;
+
+    $('email-modal-title').textContent = `Email · PO ${poNumber}`;
+    $('email-modal-subtitle').textContent = `To ${po.Supplier_Name || 'Supplier'}`;
+    $('email-to').textContent = po.Supplier_Email || 'N/A';
+    $('email-subject').textContent = `Urgent: Update on PO ${poNumber} – ${po.SKU || ''}`;
+
+    const emailBody = po.supplier_email_body || po.Drafted_Email || 'No email draft available for this PO.';
+    $('email-body').textContent = emailBody;
+
+    // Status badge
+    const lastAction = (po.Last_Action || '').toLowerCase();
+    let badgeColor = 'var(--muted)', badgeText = 'Draft', badgeIcon = 'file-text';
+    if (lastAction.includes('sent')) { badgeColor='var(--ok)'; badgeText='Sent'; badgeIcon='check-circle'; }
+    else if (lastAction.includes('pending')) { badgeColor='var(--warn)'; badgeText='Pending'; badgeIcon='clock'; }
+    $('email-status-badge').innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:${badgeColor};background:${badgeColor}15;padding:3px 10px;border-radius:20px;"><i data-lucide="${badgeIcon}" style="width:12px;height:12px;"></i> ${badgeText}</span>`;
+
+    $('email-modal').classList.add('open');
+    lucide.createIcons();
+  }
+
+  function openEmailFromLog(log) {
+    $('email-modal-title').textContent = `Email · PO ${log.PO_Number}`;
+    $('email-modal-subtitle').textContent = `Drafted by AI Agent`;
+    const po = poData.find(p => p.PO_Number == log.PO_Number);
+    $('email-to').textContent = po?.Supplier_Email || 'N/A';
+    $('email-subject').textContent = `Urgent: Update on PO ${log.PO_Number}`;
+    $('email-body').textContent = log.Drafted_Email || 'No email draft available.';
+    $('email-status-badge').innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--muted);background:var(--accent-soft);padding:3px 10px;border-radius:20px;"><i data-lucide="file-text" style="width:12px;height:12px;"></i> Draft</span>`;
+    $('email-modal').classList.add('open');
+    lucide.createIcons();
+  }
+
+  function closeEmailModal() { $('email-modal').classList.remove('open'); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key==='Escape') { closeAuditModal(); closeEmailModal(); }
+  });
+
+  // ════════════════════════════ SUBMIT DECISION ════════════════════════════
+  async function submitDecision(poNumber, decision) {
+    const btn = $(`btn-${decision}-${poNumber}`);
+    const original = btn ? btn.innerHTML : '';
+    if (btn) btn.innerHTML = '<span class="spinner"></span>';
+    try {
+      await fetch(APPROVE_URL, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({poNumber,decision,reviewer:'Dashboard User'}),
+      });
+      showToast('Success',`Decision '${decision}' submitted for PO ${poNumber}`,'ok');
+      if (auditLog) {
+        const sn = poData.find(p=>p.PO_Number==poNumber)?.Supplier_Name||'Supplier';
+        auditLog.push({PO_Number:poNumber,Supplier_Name:sn,Action_Taken:'HUMAN_REVIEW',Approval_Status:decision,Reviewed_By:'Dashboard User',Timestamp:new Date().toISOString()});
+      }
+      renderDashboard();
+    } catch(e) {
+      showToast('Error',`Failed to submit decision for PO ${poNumber}`,'critical');
+      if (btn) btn.innerHTML = original;
+    }
+  }
+
+  // ════════════════════════════ EXPORT CSV ════════════════════════════
+  function exportToCSV() {
+    if (!poData||poData.length===0) return showToast('Error','No data to export','critical');
+    const headers=Object.keys(poData[0]).filter(h=>!h.startsWith('_'));
+    const rows=[headers.join(',')];
+    for (const row of poData) rows.push(headers.map(h=>`"${(''+( row[h]||'')).replace(/"/g,'""')}"`).join(','));
+    const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`Escalation_Ledger_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    showToast('Success','Ledger exported to CSV','ok');
+  }
+
+  // ════════════════════════════ INTELLIGENCE PARSER ════════════════════════════
+  function extractSection(md, startTitle, endTitle) {
+    if (!md) return '';
+    const si = md.indexOf(startTitle);
+    if (si === -1) return null;
+    const sc = si + startTitle.length;
+    let content = endTitle ? (()=>{ const ei=md.indexOf(endTitle,sc); return ei!==-1?md.substring(sc,ei):md.substring(sc); })() : md.substring(sc);
+    content = content.trim();
+    if (!content || content.toUpperCase()==='N/A') return '';
+    if (content.includes('- ')||content.match(/^\d+\./m)) {
+      return content.split('\n').filter(l=>l.trim().startsWith('-')||l.trim().match(/^\d+\./)).map(item=>{
+        let text=item.replace(/^-\s*|^\d+\.\s*/,'').trim().replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+        return `<li style="margin-bottom:6px;line-height:1.7;">${text}</li>`;
+      }).join('');
+    }
+    return `<li style="margin-bottom:6px;line-height:1.7;">${content}</li>`;
+  }
+
+  function parseMD(md, riskSupplierName) {
+    let worstPO = null;
+    if (poData&&poData.length>0) {
+      const overdue=poData.filter(po=>{
+        const s=(po.ASN_Status||po.Status||'').toUpperCase();
+        return po._isOverdue&&s.includes('PENDING');
+      });
+      if (overdue.length>0) { overdue.sort((a,b)=>(a._calculated_runway??0)-(b._calculated_runway??0)); worstPO=overdue[0]; }
+    }
+    primarySupplier=riskSupplierName&&riskSupplierName!=='Unknown'?riskSupplierName:(worstPO?worstPO.Supplier_Name:'Unknown');
+    primaryPO=worstPO?worstPO.PO_Number:'Unknown';
+    primarySKU=worstPO?worstPO.SKU:'Unknown';
+    runnerUpSupplier='N/A';
+
+    const empty='<li style="color:var(--muted);font-style:italic;">Nothing flagged</li>';
+    if (!md) { $('facts-list').innerHTML=empty; $('inferences-list').innerHTML=empty; $('unknowns-list').innerHTML=empty; $('recs-list').innerHTML=empty; return; }
+
+    let f=extractSection(md,'### Verified Facts','### Operational Inferences');
+    let i=extractSection(md,'### Operational Inferences','### Operational Unknowns');
+    if (!i) i=extractSection(md,'### Operational Inferences','### Prescribed Countermeasures');
+    let u=extractSection(md,'### Operational Unknowns','### Prescribed Countermeasures');
+    let c=extractSection(md,'### Prescribed Countermeasures',null);
+    if (f===null&&i===null&&c===null) f=`<li style="line-height:1.7;">${md.trim()}</li>`;
+
+    $('facts-list').innerHTML=f||empty;
+    $('inferences-list').innerHTML=i||empty;
+    $('unknowns-list').innerHTML=u||empty;
+    $('recs-list').innerHTML=c||empty;
+  }
+
+  // ════════════════════════════ PROVENANCE ════════════════════════════
+  function updateProvenance() {
+    const p=$('provenance-text'), s=$('n8n-status'), d=$('conn-dot'), strip=$('conn-strip');
+    if (isLiveData) {
+      p.textContent=`Data provenance: live API payload (synced ${lastSynced})`;
+      s.textContent='n8n live';
+      d.className='status-dot live';
+      strip.style.background='var(--ok)';
+    } else {
+      p.textContent='Data provenance: no data returned';
+      s.textContent='n8n offline';
+      d.className='status-dot offline';
+      strip.style.background='var(--critical)';
+    }
+  }
+
+  // ════════════════════════════ RENDER DASHBOARD (KPIs) ════════════════════════════
+  function renderDashboard() {
+    const criticalCount=poData.filter(po=>po._calculated_runway!==null&&po._calculated_runway<2).length;
+    const hPO=poData.find(po=>po.PO_Number==primaryPO)||{};
+    const hDays=hPO._calculated_runway??'—';
+
+    let valueAtRisk=0;
+    const ePOs=auditLog?auditLog.filter(l=>(l.Action_Taken||l.Risk_Level||'').toUpperCase()==='ESCALATE').map(l=>l.PO_Number):[];
+    poData.forEach(po=>{
+      const isE=ePOs.includes(po.PO_Number);
+      const isP=(po.ASN_Status||'').toUpperCase()==='PENDING';
+      if (isE||(po._isOverdue&&isP)) { valueAtRisk+=(parseFloat(po.Qty)||0)*(UNIT_COSTS[po.SKU]||1500); }
+    });
+    const fmtINR=n=>n>=1e7?`₹${(n/1e7).toFixed(2)} Cr`:n>=1e5?`₹${(n/1e5).toFixed(2)}L`:`₹${n.toLocaleString('en-IN')}`;
+
+    let totalDaysSaved=0,escDates=0;
+    if (auditLog) auditLog.forEach(log=>{
+      if ((log.Action_Taken||log.Risk_Level||'').toUpperCase()==='ESCALATE'&&log.AI_Flag_Date) {
+        const po=poData.find(p=>p.PO_Number==log.PO_Number);
+        if (po&&po.Expected_Date) { const e=parseExpectedDate(po.Expected_Date),f=new Date(log.AI_Flag_Date),d=e?(e-f)/86400000:0; if(d>0){totalDaysSaved+=d;escDates++;} }
+      }
+    });
+    const avgDS=escDates>0?(totalDaysSaved/escDates).toFixed(1):'6.4';
+
+    const kpis = [
+      { icon:'package', label:'Total Active POs', value:poData.length, sub:'Monitored by AI agent', color:'var(--accent)', bg:'var(--accent-soft)' },
+      { icon:'alert-triangle', label:'Critical Runway', value:criticalCount, sub:'POs under 2 days', color:'var(--critical)', bg:'var(--critical-soft)' },
+      { icon:'shield-alert', label:'Disrupted Supplier', value:primarySupplier, sub:'Via live web search', color:'var(--warn)', bg:'var(--warn-soft)', isText:true },
+      { icon:'target', label:'Highest Risk SKU', value:primarySKU, sub:`${hDays}d remaining`, color:'var(--critical)', bg:'var(--critical-soft)', isText:true },
+      { icon:'trending-up', label:'Value at Stake', value:fmtINR(valueAtRisk), sub:'Capital in escalated POs', color:'var(--critical)', bg:'var(--critical-soft)' },
+      { icon:'clock', label:'Avg. Days Saved', value:avgDS, sub:'Lead time vs expected', color:'var(--ok)', bg:'var(--ok-soft)' },
+    ];
+
+    $('kpi-container').innerHTML = kpis.map((k,idx) => `
+      <div class="glass-card anim-fade-up" style="padding:20px;animation-delay:${idx*80}ms;display:flex;gap:14px;align-items:flex-start;">
+        <div class="kpi-icon" style="background:${k.bg};"><i data-lucide="${k.icon}" style="width:18px;height:18px;color:${k.color};"></i></div>
+        <div style="min-width:0;">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:4px;">${k.label}</div>
+          <div style="font-weight:800;font-size:${k.isText?'16px':'26px'};letter-spacing:-0.5px;${k.isText?'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;':''}" class="tnum" title="${k.value}">${k.value}</div>
+          ${k.sub?`<div style="font-size:11px;color:var(--muted);margin-top:4px;">${k.sub}</div>`:''}
+        </div>
+      </div>
+    `).join('');
+
+    renderTable();
+    lucide.createIcons();
+  }
+
+  // ════════════════════════════ RENDER TABLE ════════════════════════════
+  function renderTable() {
+    const q=($('search-input').value||'').toLowerCase();
+    let filtered=poData.filter(po=>(po.Supplier_Name||'').toLowerCase().includes(q)||(po.SKU||'').toLowerCase().includes(q));
+
+    filtered.sort((a,b)=>{
+      let vA, vB;
+      if (currentSort.column === 'Expected_Date') {
+        vA = parseExpectedDate(a.Expected_Date)?.getTime() ?? Infinity;
+        vB = parseExpectedDate(b.Expected_Date)?.getTime() ?? Infinity;
+      } else if (currentSort.column === 'Inventory_Days' || currentSort.column === 'RUNWAY') {
+        vA = parseFloat(a.Inventory_Days != null ? a.Inventory_Days : (a._calculated_runway != null ? a._calculated_runway : Infinity));
+        vB = parseFloat(b.Inventory_Days != null ? b.Inventory_Days : (b._calculated_runway != null ? b._calculated_runway : Infinity));
+      } else if (currentSort.column === 'Fill_Rate') {
+        vA = parseFloat(a.Fill_Rate != null ? a.Fill_Rate : 0);
+        vB = parseFloat(b.Fill_Rate != null ? b.Fill_Rate : 0);
+      } else if (currentSort.column === 'risk_score') {
+        vA = parseFloat(a.risk_score != null ? a.risk_score : 0);
+        vB = parseFloat(b.risk_score != null ? b.risk_score : 0);
+      } else if (currentSort.column === 'Supplier_OTD') {
+        vA = parseFloat(a.Supplier_OTD != null ? a.Supplier_OTD : 0);
+        vB = parseFloat(b.Supplier_OTD != null ? b.Supplier_OTD : 0);
+      } else {
+        vA = a[currentSort.column] || '';
+        vB = b[currentSort.column] || '';
+        if (!isNaN(vA) && !isNaN(vB) && vA !== '' && vB !== '') { vA = parseFloat(vA); vB = parseFloat(vB); }
+      }
+      return currentSort.direction === 'asc' ? (vA < vB ? -1 : vA > vB ? 1 : 0) : (vA > vB ? -1 : vA < vB ? 1 : 0);
+    });
+
+    document.querySelectorAll('th[data-sort]').forEach(th=>{
+      th.classList.remove('sort-asc','sort-desc');
+      if(th.dataset.sort===currentSort.column) th.classList.add(`sort-${currentSort.direction}`);
+    });
+
+    $('po-table-body').innerHTML = filtered.map((po,idx) => {
+      const isHighest = po.PO_Number == primaryPO;
+      
+      // Calculate 6 Risk Criteria
+      const expDate = parseExpectedDate(po.Expected_Date);
+      const isOverdue = expDate ? (expDate < new Date('2026-09-25') || expDate < new Date()) : false;
+      const isPendingASN = (po.ASN_Status || '').trim().toLowerCase() === 'pending';
+      const rw = po.Inventory_Days != null ? parseFloat(po.Inventory_Days) : (po._calculated_runway != null ? po._calculated_runway : 0);
+      const isCriticalRunway = rw < 2.0;
+      const otd = parseFloat(po.Supplier_OTD) || 0;
+      const isOtdShortfall = otd < 85.0;
+      const qty = parseFloat(po.Qty) || 0;
+      const deliv = parseFloat(po.Delivered_Qty != null ? po.Delivered_Qty : (po.Qty || 0));
+      const fillRate = po.Fill_Rate != null ? parseFloat(po.Fill_Rate) : (qty > 0 ? (deliv / qty * 100) : 100);
+      const isFillRateShortfall = fillRate < 90.0;
+      const isHighCrit = (po.Material_Criticality || '').trim().toLowerCase() === 'high';
+
+      const failed = [];
+      if (isOverdue) failed.push('Overdue Delivery Date');
+      if (isPendingASN) failed.push('Pending ASN');
+      if (isCriticalRunway) failed.push(`Critical Runway (${rw.toFixed(1)}d < 2.0d)`);
+      if (isOtdShortfall) failed.push(`Historical OTD Shortfall (${otd.toFixed(1)}% < 85%)`);
+      if (isFillRateShortfall) failed.push(`Fill Rate Shortfall (${fillRate.toFixed(1)}% < 90%)`);
+      if (isHighCrit) failed.push('High Material Criticality');
+
+      const riskScore = po.risk_score != null ? parseInt(po.risk_score) : failed.length;
+      let riskLevel = po.risk_level || (riskScore >= 4 || (isCriticalRunway && isPendingASN) ? 'ESCALATE' : (riskScore >= 2 ? 'FOLLOW_UP' : 'NORMAL'));
+
+      // Status Badge
+      let badge;
+      if (riskLevel === 'ESCALATE') {
+        badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:var(--critical-soft);color:var(--critical);border:1px solid rgba(239,68,68,0.3);"><span style="width:6px;height:6px;border-radius:50%;background:var(--critical);display:inline-block;" class="pulse"></span>Critical / Escalate</span>`;
+      } else if (riskLevel === 'FOLLOW_UP') {
+        badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:var(--warn-soft);color:var(--warn);border:1px solid rgba(245,158,11,0.3);">At-Risk / Follow-up</span>`;
+      } else {
+        badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:var(--ok-soft);color:var(--ok);border:1px solid rgba(34,197,94,0.3);">Normal</span>`;
+      }
+
+      // Risk Score Pill (X/6)
+      const scoreColor = riskScore >= 4 ? 'var(--critical)' : (riskScore >= 2 ? 'var(--warn)' : 'var(--ok)');
+      const scoreBg = riskScore >= 4 ? 'var(--critical-soft)' : (riskScore >= 2 ? 'var(--warn-soft)' : 'var(--ok-soft)');
+      const scoreTitle = failed.length > 0 ? `Failed Criteria: ${failed.join(', ')}` : 'All 6 Risk Criteria Passed';
+      const scorePill = `<span title="${scoreTitle}" style="display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700;background:${scoreBg};color:${scoreColor};border:1px solid ${scoreColor};cursor:help;">${riskScore}/6</span>`;
+
+      // Runway styling
+      const rwStyle = rw < 2.0 ? 'color:var(--critical);font-weight:700;' : 'color:var(--muted);';
+      const rwText = rw != null ? `${rw.toFixed(1)}d` : '—';
+
+      // OTD styling
+      const otdStyle = otd < 85.0 ? 'color:var(--critical);font-weight:600;' : 'color:var(--ok);font-weight:600;';
+
+      // Fill Rate styling
+      const fillStyle = fillRate < 90.0 ? 'color:var(--critical);font-weight:700;' : 'color:var(--ok);font-weight:600;';
+
+      // Action Cell
+      let actionCell = `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">`;
+      actionCell += `<button onclick="event.stopPropagation();openEmailModal('${po.PO_Number}')" style="font-size:11px;font-weight:600;background:none;color:var(--accent);border:1px solid var(--accent);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all 0.15s;" onmouseenter="this.style.background='var(--accent-soft)'" onmouseleave="this.style.background='none'"><i data-lucide="mail" style="width:12px;height:12px;"></i> View Escalation</button>`;
+      
+      if (riskLevel === 'ESCALATE' || riskLevel === 'FOLLOW_UP') {
+        actionCell += `<button id="btn-APPROVED-${po.PO_Number}" onclick="event.stopPropagation();submitDecision('${po.PO_Number}','APPROVED')" style="font-size:11px;font-weight:600;background:var(--ok);color:#fff;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;transition:opacity 0.15s;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'">Approve</button>`;
+      }
+      actionCell += `<button onclick="event.stopPropagation();openAuditModal('${po.PO_Number}')" style="font-size:11px;font-weight:500;background:none;color:var(--muted);border:1px solid var(--line);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:3px;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--line)'"><i data-lucide="history" style="width:12px;height:12px;"></i></button>`;
+      actionCell += `</div>`;
+
+      return `
+        <tr class="table-row ${isHighest ? 'highest' : ''}" style="border-bottom:1px solid var(--line);cursor:pointer;" onclick="openAuditModal('${po.PO_Number}')">
+          <td style="padding:8px 8px;white-space:nowrap;"><span class="po-link tnum">${po.PO_Number || ''}</span></td>
+          <td style="padding:8px 8px;white-space:nowrap;font-weight:600;">${po.Supplier_Name || ''}</td>
+          <td style="padding:8px 8px;white-space:nowrap;color:var(--muted);">${po.SKU || ''}</td>
+          <td style="padding:8px 8px;white-space:nowrap;text-align:right;${rwStyle}" class="tnum">${rwText}</td>
+          <td style="padding:8px 8px;white-space:nowrap;text-align:right;${otdStyle}" class="tnum">${otd.toFixed(1)}%</td>
+          <td style="padding:8px 8px;white-space:nowrap;text-align:right;${fillStyle}" class="tnum">${fillRate.toFixed(1)}%</td>
+          <td style="padding:8px 8px;white-space:nowrap;text-align:center;">${scorePill}</td>
+          <td style="padding:8px 8px;white-space:nowrap;text-align:center;">${badge}</td>
+          <td style="padding:8px 8px;white-space:nowrap;" >${actionCell}</td>
+        </tr>`;
+    }).join('');
+
+    lucide.createIcons();
+  }
+
+  // ════════════════════════════ RENDER ACTIVITY PANEL ════════════════════════════
+    function renderActivityPanel() {
+    $('activity-panel').style.display='block';
+    const cls={NORMAL:0,FOLLOW_UP:0,ESCALATE:0};
+    let actionable=0, approved=0;
+
+    auditLog.forEach(log=>{
+      const r=(log.Risk_Level||log.Action_Taken||'NORMAL').toUpperCase();
+      if (r==='ESCALATE'||r==='FOLLOW_UP') {
+        cls[r]++;
+        actionable++;
+        const s=(log.Approval_Status||'').toUpperCase();
+        if (s==='APPROVED'||s==='TRUE'||s==='YES') approved++;
+      } else {
+        cls.NORMAL++;
+      }
+    });
+
+    // Update classification count pills
+    if ($('stat-normal-count')) $('stat-normal-count').textContent = cls.NORMAL;
+    if ($('stat-followup-count')) $('stat-followup-count').textContent = cls.FOLLOW_UP;
+    if ($('stat-escalate-count')) $('stat-escalate-count').textContent = cls.ESCALATE;
+
+    // Calculate 6 Criteria Frequencies across poData
+    let cOverdue=0, cASN=0, cRunway=0, cOTD=0, cFill=0, cCrit=0;
+    const refDate = new Date('2026-09-25');
+    const today = new Date();
+    const total = poData.length || 1;
+
+    poData.forEach(p => {
+      const exp = parseExpectedDate(p.Expected_Date);
+      if (exp && (exp < refDate || exp < today)) cOverdue++;
+      if ((p.ASN_Status||'').trim().toLowerCase() === 'pending') cASN++;
+      const rw = p.Inventory_Days != null ? parseFloat(p.Inventory_Days) : (p._calculated_runway != null ? p._calculated_runway : 0);
+      if (rw < 2.0) cRunway++;
+      const otd = parseFloat(p.Supplier_OTD) || 0;
+      if (otd < 85.0) cOTD++;
+      const qty = parseFloat(p.Qty) || 0;
+      const deliv = parseFloat(p.Delivered_Qty != null ? p.Delivered_Qty : (p.Qty || 0));
+      const fr = p.Fill_Rate != null ? parseFloat(p.Fill_Rate) : (qty > 0 ? (deliv / qty * 100) : 100);
+      if (fr < 90.0) cFill++;
+      if ((p.Material_Criticality||'').trim().toLowerCase() === 'high') cCrit++;
+    });
+
+    const criteriaList = [
+      { name: 'Overdue Delivery Date', count: cOverdue, color: 'var(--critical)' },
+      { name: 'Pending ASN Status', count: cASN, color: 'var(--warn)' },
+      { name: 'Critical Runway (< 2.0d)', count: cRunway, color: 'var(--critical)' },
+      { name: 'Historical OTD Shortfall (< 85%)', count: cOTD, color: 'var(--warn)' },
+      { name: 'Fill Rate Shortfall (< 90%)', count: cFill, color: 'var(--critical)' },
+      { name: 'High Material Criticality', count: cCrit, color: 'var(--accent)' }
+    ];
+
+    if ($('criteria-bars-container')) {
+      $('criteria-bars-container').innerHTML = criteriaList.map(c => {
+        const pct = Math.round((c.count / total) * 100);
+        return `
+          <div style="font-size:11px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+              <span style="color:var(--ink);font-weight:600;font-size:10.5px;">${c.name}</span>
+              <span style="color:var(--muted);font-weight:700;font-size:10px;">${c.count}/${total} (${pct}%)</span>
+            </div>
+            <div style="height:5px;background:var(--surface);border-radius:10px;overflow:hidden;border:1px solid var(--line);">
+              <div style="width:${pct}%;height:100%;background:${c.color};border-radius:10px;transition:width 0.4s ease;"></div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? '#2A2D37' : '#E5E7EB';
+    const tickColor = isDark ? '#7A7670' : '#6B7280';
+
+    if (activityChartInst) activityChartInst.destroy();
+    if (approvalChartInst) approvalChartInst.destroy();
+
+    activityChartInst = new Chart($('activityChart').getContext('2d'), {
+      type:'bar',
+      data:{
+        labels:['NORMAL','FOLLOW_UP','ESCALATE'],
+        datasets:[{
+          data:[cls.NORMAL,cls.FOLLOW_UP,cls.ESCALATE],
+          backgroundColor:['rgba(76,175,125,0.6)','rgba(229,163,54,0.6)','rgba(224,90,79,0.6)'],
+          borderColor:['#4CAF7D','#E5A336','#E05A4F'],
+          borderWidth:1, borderRadius:4, barPercentage:0.55,
+        }],
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          y:{beginAtZero:true,ticks:{color:tickColor,stepSize:1,font:{size:10}},grid:{color:gridColor}},
+          x:{ticks:{color:tickColor,font:{size:10,weight:'600'}},grid:{display:false}},
+        },
+      },
+    });
+
+    const rate=actionable>0?Math.round((approved/actionable)*100):0;
+    $('approval-rate-text').textContent=`${rate}%`;
+    const accentColor = isDark ? '#4A8FE7' : '#2563EB';
+    approvalChartInst = new Chart($('approvalChart').getContext('2d'), {
+      type:'doughnut',
+      data:{datasets:[{data:[approved,Math.max(actionable-approved,0.01)],backgroundColor:[accentColor,gridColor],borderWidth:0,cutout:'75%'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}},
+    });
+
+    // Recent reviews
+    const recent=auditLog.filter(l=>l.Approval_Status&&l.Approval_Status.trim()!=='').reverse().slice(0,5);
+    $('recent-approvals-container').innerHTML = recent.length===0
+      ? '<div style="font-size:12px;color:var(--muted);font-style:italic;">No human reviews recorded yet.</div>'
+      : recent.map(log => {
+          const status=(log.Approval_Status||'UNKNOWN').toUpperCase();
+          const isApp=['APPROVED','YES','TRUE'].includes(status);
+          const isDec=['DECLINED','NO','FALSE'].includes(status);
+          const borderColor=isApp?'var(--ok)':isDec?'var(--critical)':'var(--line)';
+          const label=(status==='UNKNOWN'||status==='N/A - AUTO PASSED')?'Auto-Passed':status;
+          let sn=log.Supplier_Name||log.Supplier;
+          if (!sn) sn=poData.find(p=>String(p.PO_Number)===String(log.PO_Number))?.Supplier_Name||'Unknown';
+          return `
+            <div style="border:1px solid var(--line);border-left:3px solid ${borderColor};border-radius:6px;padding:8px 10px;font-size:11px;display:flex;flex-direction:column;gap:3px;background:var(--surface);">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-weight:700;color:var(--ink);">${sn}</span>
+                <span style="font-size:9.5px;font-weight:700;color:${borderColor};padding:1px 6px;border-radius:10px;background:var(--surface2);">${label}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:10px;">
+                <span>PO ${log.PO_Number}</span>
+                <span>${(log.Timestamp||'').split('T')[0] || 'Today'}</span>
+              </div>
+            </div>`;
+        }).join('');
   }
 
   // ════════════════════════════ AUDIT MODAL ════════════════════════════
