@@ -205,6 +205,9 @@
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
       <span id="sync-timer" class="tnum" style="font-size:12px;color:var(--muted);min-width:120px;text-align:right;"></span>
+            <button onclick="openWorkflowModal()" style="background:var(--surface);border:1px solid var(--line);color:var(--ink);padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--line)'">
+        <i data-lucide="git-branch" style="width:14px;height:14px;color:var(--accent);"></i> Workflow Architecture
+      </button>
       <button onclick="triggerAutomation()" id="trigger-auto-btn" style="background:var(--accent);color:#fff;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.2s;" onmouseenter="this.style.opacity='0.9'" onmouseleave="this.style.opacity='1'">
         <i data-lucide="play" style="width:14px;height:14px;"></i> Run Automation
       </button>
