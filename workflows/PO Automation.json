@@ -114,7 +114,7 @@
           "conditions": [
             {
               "id": "risk-not-normal",
-              "leftValue": "={{ $json.output.risk_level }}",
+              "leftValue": "={{ $json.risk_level }}",
               "rightValue": "NORMAL",
               "operator": {
                 "type": "string",
@@ -1048,63 +1048,15 @@
     },
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "run-po-automation",
-        "responseMode": "responseNode",
-        "options": {
-          "responseHeaders": {
-            "entries": [
-              {
-                "name": "Access-Control-Allow-Origin",
-                "value": "*"
-              },
-              {
-                "name": "Access-Control-Allow-Methods",
-                "value": "POST, OPTIONS"
-              },
-              {
-                "name": "Access-Control-Allow-Headers",
-                "value": "*"
-              }
-            ]
-          }
-        }
+        "jsCode": "// 6 Operational Risk Criteria Evaluator\nconst items = $input.all();\nconst today = new Date();\nconst refDate = new Date('2026-09-25');\n\nreturn items.map(item => {\n  const row = item.json;\n  const expDate = new Date(row.Expected_Date);\n  const isOverdue = !isNaN(expDate.getTime()) && (expDate < refDate || expDate < today);\n  const isPendingASN = (row.ASN_Status || '').trim().toLowerCase() === 'pending';\n  const runway = parseFloat(row.Inventory_Days) || 0;\n  const isCriticalRunway = runway < 2.0;\n  const otd = parseFloat(row.Supplier_OTD) || 0;\n  const isOtdShortfall = otd < 85.0;\n  \n  const qty = parseFloat(row.Qty) || 0;\n  const deliv = parseFloat(row.Delivered_Qty != null ? row.Delivered_Qty : (row.Qty || 0));\n  const fillRate = row.Fill_Rate != null ? parseFloat(row.Fill_Rate) : (qty > 0 ? (deliv / qty * 100) : 100);\n  const isFillRateShortfall = fillRate < 90.0;\n  \n  const isHighCrit = (row.Material_Criticality || '').trim().toLowerCase() === 'high';\n\n  const failedCriteria = [];\n  if (isOverdue) failedCriteria.push('Overdue Delivery Date');\n  if (isPendingASN) failedCriteria.push('Pending ASN');\n  if (isCriticalRunway) failedCriteria.push(`Critical Runway (${runway}d < 2.0d)`);\n  if (isOtdShortfall) failedCriteria.push(`Historical OTD Shortfall (${otd}% < 85%)`);\n  if (isFillRateShortfall) failedCriteria.push(`Fill Rate Shortfall (${fillRate.toFixed(1)}% < 90%)`);\n  if (isHighCrit) failedCriteria.push('High Material Criticality');\n\n  const riskScore = failedCriteria.length;\n  let riskLevel = 'NORMAL';\n  if (riskScore >= 4 || (isCriticalRunway && isPendingASN)) {\n    riskLevel = 'ESCALATE';\n  } else if (riskScore >= 2) {\n    riskLevel = 'FOLLOW_UP';\n  }\n\n  let emailBody = row.supplier_email_body || '';\n  if (!emailBody && riskLevel !== 'NORMAL') {\n    const urgency = riskLevel === 'ESCALATE' ? 'URGENT ESCALATION' : 'Follow-Up Notice';\n    emailBody = `Dear ${row.Supplier_Name} Logistics Team,\\n\\n` +\n      `[${urgency}] Regarding PO #${row.PO_Number} for SKU ${row.SKU}.\\n` +\n      `Our Supply Chain Control Tower flagged this order with Risk Score ${riskScore}/6 due to:\\n` +\n      failedCriteria.map(c => `  - ${c}`).join('\\n') + `\\n\\n` +\n      `Delivered: ${deliv}/${qty} (${fillRate.toFixed(1)}% Fill Rate). Current inventory runway is critically low at ${runway} days.\\n` +\n      `Please confirm carrier docket number and guaranteed dispatch ETA within 24 hours to prevent plant stockout.\\n\\n` +\n      `Best regards,\\nProcurement Operations`;\n  }\n\n  return {\n    json: {\n      ...row,\n      Delivered_Qty: deliv,\n      Fill_Rate: fillRate.toFixed(1),\n      risk_score: riskScore,\n      risk_score_display: `${riskScore}/6`,\n      risk_level: riskLevel,\n      failed_criteria: failedCriteria,\n      _risk_reason: failedCriteria.length > 0 ? failedCriteria.join('; ') : 'On Track',\n      supplier_email_body: emailBody,\n      Last_Action: riskLevel !== 'NORMAL' ? 'Escalation Email Sent' : (row.Last_Action || 'No Action Required'),\n      Last_Action_Timestamp: new Date().toISOString()\n    }\n  };\n});"
       },
-      "id": "po-run-webhook",
-      "name": "Webhook Run Automation",
-      "type": "n8n-nodes-base.webhook",
+      "id": "eval-6-criteria",
+      "name": "Evaluate 6 Risk Criteria",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1024,
-        -500
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "{\"status\": \"started\", \"message\": \"PO Automation triggered successfully\"}",
-        "options": {
-          "responseHeaders": {
-            "entries": [
-              {
-                "name": "Access-Control-Allow-Origin",
-                "value": "*"
-              },
-              {
-                "name": "Content-Type",
-                "value": "application/json"
-              }
-            ]
-          }
-        }
-      },
-      "id": "po-run-respond",
-      "name": "Respond Run Webhook",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        -800,
-        -500
+        480,
+        200
       ]
     }
   ],
@@ -1125,7 +1077,7 @@
       "main": [
         [
           {
-            "node": "Assess PO Risk",
+            "node": "Evaluate 6 Risk Criteria",
             "type": "main",
             "index": 0
           }
@@ -1309,16 +1261,11 @@
         ]
       ]
     },
-    "Webhook Run Automation": {
+    "Evaluate 6 Risk Criteria": {
       "main": [
         [
           {
-            "node": "Read PO Tracker",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Respond Run Webhook",
+            "node": "Needs Supplier Email?",
             "type": "main",
             "index": 0
           }
