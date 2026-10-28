@@ -1,5 +1,5 @@
 {
-  "name": "PO Automation",
+  "name": "PO Automation - Master (fixed)",
   "nodes": [
     {
       "parameters": {},
@@ -48,10 +48,10 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Assess this purchase order for supply-chain / shipment risk.\n\nPO_Number: {{ $json.PO_Number }}\nSupplier_Name: {{ $json.Supplier_Name }}\nSupplier_Email: {{ $json.Supplier_Email }}\nSKU: {{ $json.SKU }}\nQty: {{ $json.Qty }}\nExpected_Date: {{ $json.Expected_Date }}\nASN_Status: {{ $json.ASN_Status }}\nLast_Shipment_Update: {{ $json.Last_Shipment_Update }}\nToday: {{ $now.toFormat('yyyy-MM-dd') }}",
+        "text": "=Draft the supplier email for this purchase order. The risk assessment was ALREADY made by our scoring engine; do not re-score it. Use only the facts below.\n\nPO_Number: {{ $json.PO_Number }}\nSupplier_Name: {{ $json.Supplier_Name }}\nSupplier_Email: {{ $json.Supplier_Email }}\nSKU: {{ $json.SKU }}\nQty ordered: {{ $json.Qty }}\nQty delivered: {{ $json.Delivered_Qty }} (Fill rate {{ $json.Fill_Rate }}%)\nExpected_Date: {{ $json.Expected_Date }}\nASN_Status: {{ $json.ASN_Status }}\nLast_Shipment_Update: {{ $json.Last_Shipment_Update }}\nPlant stock runway (days): {{ $json.Inventory_Days }}\nRisk_Level: {{ $json.risk_level }}\nRisk_Score: {{ $json.risk_score_display }}\nFailed_Criteria: {{ ($json.failed_criteria || []).join('; ') }}\nAs_Of_Date: {{ $json.as_of_date }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "You are a supply-chain operations assistant that reviews purchase orders (POs) for shipment risk.\n\nConsider Expected_Date (how close or overdue the delivery is relative to Today), ASN_Status (an empty status or anything other than \"in-transit\"/\"delivered\" is a concern), Last_Shipment_Update (stale updates > 5 days are a concern), Supplier_Name, SKU and Qty.\n\nClassify each PO's risk_level as exactly one of:\n- NORMAL: on track, no supplier communication needed.\n- FOLLOW_UP: minor concern, a polite status request is warranted.\n- ESCALATE: high risk (missing ASN with imminent/overdue ETA, or no movement), an urgent supplier request is required.\n\nReturn these fields:\n- risk_level: NORMAL | FOLLOW_UP | ESCALATE\n- risk_reason: one or two concise sentences explaining the risk.\n- recommended_action: the concrete next step for the buyer.\n- supplier_email_body: For FOLLOW_UP or ESCALATE, write a complete, professional plain-text email to the supplier requesting the required shipment/ASN/ETA information (greeting, PO number, SKU, quantity, the specific information needed, a clear response deadline, and a professional sign-off from the Procurement team). For NORMAL, return an empty string."
+          "systemMessage": "You are a supply-chain procurement assistant. A deterministic scoring engine has already classified the PO; your job is ONLY to write the supplier email.\n\nReturn these fields:\n- risk_level: echo the Risk_Level you were given (ESCALATE or FOLLOW_UP).\n- risk_reason: one or two sentences summarising the Failed_Criteria in plain language.\n- recommended_action: the concrete next step for the buyer.\n- supplier_email_body: a complete, professional plain-text email (greeting, PO number, SKU, ordered vs delivered quantity, the specific information needed such as carrier docket number, ASN and a confirmed dispatch ETA, a clear response deadline of 24 hours for ESCALATE or 48 hours for FOLLOW_UP, and a sign-off from the Procurement team). Tone: firm but polite for ESCALATE, courteous for FOLLOW_UP.\n\nRules: use only the data provided; never invent dates, quantities, names or penalties."
         }
       },
       "id": "b92d6364-f9fb-4148-b599-b734913670ba",
@@ -59,12 +59,12 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        -576,
-        -784
+        576,
+        -912
       ],
       "retryOnFail": true,
       "waitBetweenTries": 5000,
-      "executeOnce": true
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -76,16 +76,15 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.1,
       "position": [
-        -592,
-        -576
+        560,
+        -704
       ],
       "credentials": {
         "googlePalmApi": {
           "id": "q5z2LHOvO4y9vDZx",
           "name": "Google Gemini(PaLM) Api account"
         }
-      },
-      "executeOnce": true
+      }
     },
     {
       "parameters": {
@@ -97,10 +96,9 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        -416,
-        -576
-      ],
-      "executeOnce": true
+        736,
+        -704
+      ]
     },
     {
       "parameters": {
@@ -113,12 +111,13 @@
           },
           "conditions": [
             {
-              "id": "risk-not-normal",
-              "leftValue": "={{ $json.risk_level }}",
-              "rightValue": "NORMAL",
+              "id": "needs-flag",
+              "leftValue": "={{ $json.needs_flag }}",
+              "rightValue": "",
               "operator": {
-                "type": "string",
-                "operation": "notEquals"
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
               }
             }
           ],
@@ -133,8 +132,7 @@
       "position": [
         -224,
         -784
-      ],
-      "executeOnce": true
+      ]
     },
     {
       "parameters": {
@@ -152,197 +150,16 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "PO_Number": "={{ $('Read PO Tracker').item.json.PO_Number }}",
+            "PO_Number": "={{ $('Evaluate 6 Risk Criteria').item.json.PO_Number }}",
             "Last_Action": "Reviewed - no action required",
-            "_risk_reason": "={{ $json.output.risk_reason }}",
+            "Last_Action_Timestamp": "={{ $('Evaluate 6 Risk Criteria').item.json.Last_Action_Timestamp }}",
+            "_risk_reason": "={{ $('Evaluate 6 Risk Criteria').item.json._risk_reason }}",
             "internal_note": "No supplier communication required",
-            "Runway_History": "={{ ($json.Runway_History ? $json.Runway_History + ', ' : '') + $json.Inventory_Days }}"
+            "Approval_State": "={{ $('Evaluate 6 Risk Criteria').item.json.Approval_State === 'PENDING' ? 'RESOLVED' : ($('Evaluate 6 Risk Criteria').item.json.Approval_State || '') }}",
+            "Runway_History": "={{ ($('Evaluate 6 Risk Criteria').item.json.Runway_History ? $('Evaluate 6 Risk Criteria').item.json.Runway_History + ', ' : '') + $('Evaluate 6 Risk Criteria').item.json.Inventory_Days }}"
           },
           "matchingColumns": [
             "PO_Number"
-          ],
-          "schema": [
-            {
-              "id": "PO_Number",
-              "displayName": "PO_Number",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Supplier_Name",
-              "displayName": "Supplier_Name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Supplier_Email",
-              "displayName": "Supplier_Email",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "SKU",
-              "displayName": "SKU",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Qty",
-              "displayName": "Qty",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Expected_Date",
-              "displayName": "Expected_Date",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "ASN_Status",
-              "displayName": "ASN_Status",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Last_Shipment_Update",
-              "displayName": "Last_Shipment_Update",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Buyer_Owner_Email",
-              "displayName": "Buyer_Owner_Email",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Last_Action",
-              "displayName": "Last_Action",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "_risk_reason",
-              "displayName": "_risk_reason",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "supplier_email_body",
-              "displayName": "supplier_email_body",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "internal_note",
-              "displayName": "internal_note",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Supplier_OTD",
-              "displayName": "Supplier_OTD",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Inventory_Days",
-              "displayName": "Inventory_Days",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Material_Criticality",
-              "displayName": "Material_Criticality",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Runway_History",
-              "displayName": "Runway_History",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "row_number",
-              "displayName": "row_number",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "readOnly": true,
-              "removed": false
-            }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
@@ -364,8 +181,7 @@
           "id": "BAQOyTX5ZoXCMwEF",
           "name": "Google Sheets account 2"
         }
-      },
-      "executeOnce": true
+      }
     },
     {
       "parameters": {
@@ -408,86 +224,14 @@
           "mappingMode": "defineBelow",
           "value": {
             "Timestamp": "={{ $now }}",
-            "PO_Number": "={{ $('Read PO Tracker').item.json.PO_Number }}",
-            "Risk_Level": "={{ $('Assess PO Risk').item.json.output.risk_level }}",
+            "PO_Number": "={{ $('Evaluate 6 Risk Criteria').item.json.PO_Number }}",
+            "Risk_Level": "={{ $('Evaluate 6 Risk Criteria').item.json.risk_level }}",
             "Action_Taken": "None",
             "Approval_Status": "N/A - Auto Passed",
-            "Notes": "={{ $('Assess PO Risk').item.json.output.risk_reason }}",
+            "Notes": "={{ $('Evaluate 6 Risk Criteria').item.json._risk_reason }}",
             "AI_Flag_Date": "={{ $now.toFormat('yyyy-MM-dd') }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "Timestamp",
-              "displayName": "Timestamp",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "PO_Number",
-              "displayName": "PO_Number",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Risk_Level",
-              "displayName": "Risk_Level",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Action_Taken",
-              "displayName": "Action_Taken",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Approval_Status",
-              "displayName": "Approval_Status",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Notes",
-              "displayName": "Notes",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "AI_Flag_Date",
-              "displayName": "AI_Flag_Date",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            }
-          ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         },
@@ -506,18 +250,17 @@
           "id": "BAQOyTX5ZoXCMwEF",
           "name": "Google Sheets account 2"
         }
-      },
-      "executeOnce": true
+      }
     },
     {
       "parameters": {
-        "jsCode": "// Scan the cached tracker data for the first critical PO\nconst trackerItems = $('Read PO Tracker').all();\nconst escalated = trackerItems.find(item => \n    item.json.ASN_Status === 'Pending' || item.json.Inventory_Days < 3\n);\n\nconst target = escalated ? escalated.json.Supplier_Name : \"Global Supply Chain Logistics\";\nreturn { json: { target_supplier: target } };"
+        "jsCode": "// Pick the supplier behind the single highest-risk flagged PO (score desc, then lowest runway)\nconst items = $input.all().map(i => i.json);\nif (!items.length) return [];\nitems.sort((a, b) => (b.risk_score - a.risk_score) || ((parseFloat(a.Inventory_Days) || 99) - (parseFloat(b.Inventory_Days) || 99)));\nreturn [{ json: { target_supplier: items[0].Supplier_Name, target_po: items[0].PO_Number } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         0,
-        -912
+        -1242
       ],
       "id": "6ef91272-47c1-4b10-9144-edcd5a85e486",
       "name": "Identify Target Supplier",
@@ -525,7 +268,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Helper to safely read output from nodes that might not have run in this execution\nfunction getSafeItems(nodeName) {\n  try {\n    return $(nodeName).all() || [];\n  } catch (error) {\n    return [];\n  }\n}\n\nconst sentItems = getSafeItems('Log Email Sent');\nconst declinedItems = getSafeItems('Log Declined Escalation');\nconst failedItems = getSafeItems('Log Email Failed');\nconst noActionItems = getSafeItems('Log No Action');\n\nconst totalEvaluated = sentItems.length + declinedItems.length + failedItems.length + noActionItems.length;\n\nreturn [{\n  json: {\n    run_date: new Date().toLocaleDateString('en-GB'),\n    total_evaluated: totalEvaluated,\n    emails_sent_count: sentItems.length,\n    declined_count: declinedItems.length,\n    failed_count: failedItems.length,\n    no_action_count: noActionItems.length,\n    sent_po_list: sentItems.map(item => item.json.PO_Number || 'N/A').join(', ') || 'None',\n    declined_po_list: declinedItems.map(item => item.json.PO_Number || 'N/A').join(', ') || 'None'\n  }\n}];"
+        "jsCode": "function safe(name) { try { return $(name).all() || []; } catch (e) { return []; } }\nconst flagged = safe('Log Pending Escalation');\nconst passed = safe('Log No Action');\nlet total = 0; try { total = $('Read PO Tracker').all().length; } catch (e) {}\nreturn [{ json: {\n  run_date: new Date().toLocaleDateString('en-GB'),\n  total_evaluated: total,\n  flagged_count: flagged.length,\n  auto_passed_count: passed.length,\n  in_workflow_count: Math.max(0, total - flagged.length - passed.length),\n  flagged_po_list: flagged.map(i => i.json.PO_Number || 'N/A').join(', ') || 'None'\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -541,7 +284,7 @@
       "parameters": {
         "sendTo": "anshulsilhare25@gmail.com",
         "subject": "=[Daily Recap] PO Escalation Run Summary \u2013 {{ $json.run_date }}",
-        "message": "=<div style=\"font-family: sans-serif; line-height: 1.5; color: #333;\">   <h3 style=\"color: #0052cc; margin-bottom: 8px;\">Daily PO Escalation Execution Summary</h3>   <p>The automated procurement check has concluded for <strong>{{ $json.run_date }}</strong>.</p>    <table style=\"border-collapse: collapse; width: 100%; max-width: 480px; margin: 16px 0;\">     <tr style=\"border-bottom: 1px solid #eee;\">       <td style=\"padding: 6px 0;\"><strong>Total POs Evaluated:</strong></td>       <td style=\"padding: 6px 0; text-align: right;\">{{ $json.total_evaluated }}</td>     </tr>     <tr style=\"border-bottom: 1px solid #eee;\">       <td style=\"padding: 6px 0; color: #0d8a43;\"><strong>Supplier Emails Approved & Sent:</strong></td>       <td style=\"padding: 6px 0; text-align: right; color: #0d8a43;\"><strong>{{ $json.emails_sent_count }}</strong></td>     </tr>     <tr style=\"border-bottom: 1px solid #eee;\">       <td style=\"padding: 6px 0; color: #d9381e;\"><strong>Escalations Declined:</strong></td>       <td style=\"padding: 6px 0; text-align: right; color: #d9381e;\"><strong>{{ $json.declined_count }}</strong></td>     </tr>     <tr style=\"border-bottom: 1px solid #eee;\">       <td style=\"padding: 6px 0;\"><strong>No Action Needed (On-Track):</strong></td>       <td style=\"padding: 6px 0; text-align: right;\">{{ $json.no_action_count }}</td>     </tr>     <tr>       <td style=\"padding: 6px 0; color: #c92a2a;\"><strong>Dispatch Failures:</strong></td>       <td style=\"padding: 6px 0; text-align: right;\">{{ $json.failed_count }}</td>     </tr>   </table>    <p style=\"font-size: 13px; color: #666;\">     \u2022 Approved POs: {{ $json.sent_po_list }}<br/>     \u2022 Declined POs: {{ $json.declined_po_list }}   </p>    <p style=\"font-size: 12px; color: #888; margin-top: 20px;\">     All line-item audit events have been appended to the <code>Execution_Log</code> sheet tab.   </p> </div>",
+        "message": "=<div style=\"font-family: sans-serif; line-height: 1.5; color: #333;\"><h3 style=\"color: #0052cc; margin-bottom: 8px;\">Daily PO Escalation Run Summary</h3><p>The automated procurement check has concluded for <strong>{{ $json.run_date }}</strong>.</p><table style=\"border-collapse: collapse; width: 100%; max-width: 480px; margin: 16px 0;\"><tr style=\"border-bottom: 1px solid #eee;\"><td style=\"padding: 6px 0; color: #333;\"><strong>POs in tracker:</strong></td><td style=\"padding: 6px 0; text-align: right; color: #333;\"><strong>{{ $json.total_evaluated }}</strong></td></tr><tr style=\"border-bottom: 1px solid #eee;\"><td style=\"padding: 6px 0; color: #d9381e;\"><strong>Newly flagged, awaiting your approval:</strong></td><td style=\"padding: 6px 0; text-align: right; color: #d9381e;\"><strong>{{ $json.flagged_count }}</strong></td></tr><tr style=\"border-bottom: 1px solid #eee;\"><td style=\"padding: 6px 0; color: #0d8a43;\"><strong>Auto-passed (on track):</strong></td><td style=\"padding: 6px 0; text-align: right; color: #0d8a43;\"><strong>{{ $json.auto_passed_count }}</strong></td></tr><tr style=\"border-bottom: 1px solid #eee;\"><td style=\"padding: 6px 0; color: #333;\"><strong>Already in approval flow / cooling down:</strong></td><td style=\"padding: 6px 0; text-align: right; color: #333;\"><strong>{{ $json.in_workflow_count }}</strong></td></tr></table><p style=\"font-size: 13px; color: #666;\">&bull; Flagged POs: {{ $json.flagged_po_list }}</p><p style=\"font-size: 12px; color: #888; margin-top: 20px;\">No supplier email is sent until a reviewer approves it in the Escalation Console. Audit events are appended to the <code>Execution_Log</code> tab.</p></div>",
         "options": {}
       },
       "type": "n8n-nodes-base.gmail",
@@ -570,7 +313,7 @@
       "typeVersion": 1.1,
       "position": [
         224,
-        -672
+        -1002
       ],
       "id": "725ac1bc-ef7f-42d4-b214-792eb985bb17",
       "name": "Google Gemini Chat Model",
@@ -580,28 +323,28 @@
           "id": "q5z2LHOvO4y9vDZx",
           "name": "Google Gemini(PaLM) Api account"
         }
-      },
-      "executeOnce": true
+      }
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Target supplier: {{ $('Identify Target Supplier').item.json.target_supplier }}\n\nStep 1: Analyze known supply chain disruptions, market dynamics, and operational profile for this supplier.\nStep 2: Synthesize your findings into a strictly formatted intelligence brief using exactly these headers:\n\n### Verified Facts\n[List 3-4 concrete facts found in your search with their sources]\n\n### Operational Inferences\n[Deduce how these facts might impact lead times or production]\n\n### Prescribed Countermeasures\n[Suggest 2 tactical supply chain actions to mitigate this specific risk]\n\nIf you find no negative news, state that the supplier appears operationally stable based on current web data.",
+        "text": "=Target supplier: {{ $('Identify Target Supplier').item.json.target_supplier }}\n\nStep 1: Analyze known supply chain disruptions, market dynamics, and operational profile for this supplier.\nStep 2: Synthesize your findings into a strictly formatted intelligence brief using exactly these headers:\n\n### Verified Facts\n[List 3-4 facts from your general knowledge. No live search is available, so label each one (unverified)]\n\n### Operational Inferences\n[Deduce how these facts might impact lead times or production]\n\n### Prescribed Countermeasures\n[Suggest 2 tactical supply chain actions to mitigate this specific risk]\n\nIf you find no negative news, state that the supplier appears operationally stable based on current web data.",
         "options": {
-          "systemMessage": "You are an elite Supply Chain Risk Intelligence Analyst. \nYour role is to research supply chain disruptions, financial instability, strikes, delays, or logistics risks for specific suppliers.\nDo not include any greeting or conversational filler\u2014only output the required markdown format."
+          "systemMessage": "You are an elite Supply Chain Risk Intelligence Analyst. \nYour role is to research supply chain disruptions, financial instability, strikes, delays, or logistics risks for specific suppliers.\nDo not include any greeting or conversational filler\u2014only output the required markdown format.\nYou have NO web or search access. Never claim to have searched or cite sources you cannot verify; base the brief on general knowledge and label each fact (unverified)."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
         224,
-        -912
+        -1242
       ],
       "id": "9c7b774a-cbb7-46ee-b7d5-f26a2225d68d",
       "name": "Research Supplier Risk",
       "retryOnFail": true,
       "waitBetweenTries": 5000,
-      "executeOnce": true
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -666,7 +409,7 @@
       "typeVersion": 4.7,
       "position": [
         576,
-        -912
+        -1242
       ],
       "id": "a4781201-e72b-414c-8813-b44952c45611",
       "name": "Save Briefs",
@@ -676,7 +419,7 @@
           "name": "Google Sheets account 2"
         }
       },
-      "executeOnce": true
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -698,179 +441,18 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "ASN_Status": "Pending Approval",
-            "PO_Number": "={{ $('Read PO Tracker').item.json.PO_Number }}"
+            "PO_Number": "={{ $('Evaluate 6 Risk Criteria').item.json.PO_Number }}",
+            "Approval_State": "PENDING",
+            "Drafted_Email": "={{ ($json.output && $json.output.supplier_email_body) ? $json.output.supplier_email_body : $('Evaluate 6 Risk Criteria').item.json.supplier_email_body }}",
+            "Last_Action": "Pending Human Approval",
+            "Last_Action_Timestamp": "={{ $('Evaluate 6 Risk Criteria').item.json.Last_Action_Timestamp }}",
+            "_risk_reason": "={{ $('Evaluate 6 Risk Criteria').item.json._risk_reason }}",
+            "Runway_History": "={{ ($('Evaluate 6 Risk Criteria').item.json.Runway_History ? $('Evaluate 6 Risk Criteria').item.json.Runway_History + ', ' : '') + $('Evaluate 6 Risk Criteria').item.json.Inventory_Days }}"
           },
           "matchingColumns": [
             "PO_Number"
           ],
-          "schema": [
-            {
-              "id": "PO_Number",
-              "displayName": "PO_Number",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Supplier_Name",
-              "displayName": "Supplier_Name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Supplier_Email",
-              "displayName": "Supplier_Email",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "SKU",
-              "displayName": "SKU",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Qty",
-              "displayName": "Qty",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Expected_Date",
-              "displayName": "Expected_Date",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "ASN_Status",
-              "displayName": "ASN_Status",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Last_Shipment_Update",
-              "displayName": "Last_Shipment_Update",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Buyer_Owner_Email",
-              "displayName": "Buyer_Owner_Email",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Last_Action",
-              "displayName": "Last_Action",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "_risk_reason",
-              "displayName": "_risk_reason",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "supplier_email_body",
-              "displayName": "supplier_email_body",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "internal_note",
-              "displayName": "internal_note",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Supplier_OTD",
-              "displayName": "Supplier_OTD",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Inventory_Days",
-              "displayName": "Inventory_Days",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Material_Criticality",
-              "displayName": "Material_Criticality",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Runway_History",
-              "displayName": "Runway_History",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "row_number",
-              "displayName": "row_number",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "readOnly": true,
-              "removed": true
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         },
@@ -889,8 +471,7 @@
           "id": "BAQOyTX5ZoXCMwEF",
           "name": "Google Sheets account 2"
         }
-      },
-      "executeOnce": true
+      }
     },
     {
       "parameters": {
@@ -913,106 +494,15 @@
           "mappingMode": "defineBelow",
           "value": {
             "Timestamp": "={{ $now }}",
-            "PO_Number": "={{ $('Read PO Tracker').item.json.PO_Number }}",
+            "PO_Number": "={{ $('Evaluate 6 Risk Criteria').item.json.PO_Number }}",
             "Action_Taken": "Pending Human Approval",
-            "Risk_Level": "={{ $('Assess PO Risk').item.json.output.risk_level }}",
-            "Drafted_Email": "={{ $('Assess PO Risk').item.json.output.draft_email }}",
-            "Notes": "={{ $('Assess PO Risk').item.json.output.risk_reason }}",
-            "Supplier_Name": "={{ $('Read PO Tracker').item.json.Supplier_Name }}"
+            "Risk_Level": "={{ $('Evaluate 6 Risk Criteria').item.json.risk_level }}",
+            "Drafted_Email": "={{ $('Flag PO as Pending').item.json.Drafted_Email || $('Evaluate 6 Risk Criteria').item.json.supplier_email_body }}",
+            "Notes": "={{ $('Evaluate 6 Risk Criteria').item.json._risk_reason }}",
+            "Supplier_Name": "={{ $('Evaluate 6 Risk Criteria').item.json.Supplier_Name }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "Timestamp",
-              "displayName": "Timestamp",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "PO_Number",
-              "displayName": "PO_Number",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Risk_Level",
-              "displayName": "Risk_Level",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Action_Taken",
-              "displayName": "Action_Taken",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Approval_Status",
-              "displayName": "Approval_Status",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Notes",
-              "displayName": "Notes",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "AI_Flag_Date",
-              "displayName": "AI_Flag_Date",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Drafted_Email",
-              "displayName": "Drafted_Email",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "Supplier_Name",
-              "displayName": "Supplier_Name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         },
@@ -1031,8 +521,7 @@
           "id": "BAQOyTX5ZoXCMwEF",
           "name": "Google Sheets account 2"
         }
-      },
-      "executeOnce": true
+      }
     },
     {
       "parameters": {},
@@ -1048,7 +537,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 6 Operational Risk Criteria Evaluator\nconst items = $input.all();\nconst today = new Date();\nconst refDate = new Date('2026-09-25');\n\nreturn items.map(item => {\n  const row = item.json;\n  const expDate = new Date(row.Expected_Date);\n  const isOverdue = !isNaN(expDate.getTime()) && (expDate < refDate || expDate < today);\n  const isPendingASN = (row.ASN_Status || '').trim().toLowerCase() === 'pending';\n  const runway = parseFloat(row.Inventory_Days) || 0;\n  const isCriticalRunway = runway < 2.0;\n  const otd = parseFloat(row.Supplier_OTD) || 0;\n  const isOtdShortfall = otd < 85.0;\n  \n  const qty = parseFloat(row.Qty) || 0;\n  const deliv = parseFloat(row.Delivered_Qty != null ? row.Delivered_Qty : (row.Qty || 0));\n  const fillRate = row.Fill_Rate != null ? parseFloat(row.Fill_Rate) : (qty > 0 ? (deliv / qty * 100) : 100);\n  const isFillRateShortfall = fillRate < 90.0;\n  \n  const isHighCrit = (row.Material_Criticality || '').trim().toLowerCase() === 'high';\n\n  const failedCriteria = [];\n  if (isOverdue) failedCriteria.push('Overdue Delivery Date');\n  if (isPendingASN) failedCriteria.push('Pending ASN');\n  if (isCriticalRunway) failedCriteria.push(`Critical Runway (${runway}d < 2.0d)`);\n  if (isOtdShortfall) failedCriteria.push(`Historical OTD Shortfall (${otd}% < 85%)`);\n  if (isFillRateShortfall) failedCriteria.push(`Fill Rate Shortfall (${fillRate.toFixed(1)}% < 90%)`);\n  if (isHighCrit) failedCriteria.push('High Material Criticality');\n\n  const riskScore = failedCriteria.length;\n  let riskLevel = 'NORMAL';\n  if (riskScore >= 4 || (isCriticalRunway && isPendingASN)) {\n    riskLevel = 'ESCALATE';\n  } else if (riskScore >= 2) {\n    riskLevel = 'FOLLOW_UP';\n  }\n\n  let emailBody = row.supplier_email_body || '';\n  if (!emailBody && riskLevel !== 'NORMAL') {\n    const urgency = riskLevel === 'ESCALATE' ? 'URGENT ESCALATION' : 'Follow-Up Notice';\n    emailBody = `Dear ${row.Supplier_Name} Logistics Team,\\n\\n` +\n      `[${urgency}] Regarding PO #${row.PO_Number} for SKU ${row.SKU}.\\n` +\n      `Our Supply Chain Control Tower flagged this order with Risk Score ${riskScore}/6 due to:\\n` +\n      failedCriteria.map(c => `  - ${c}`).join('\\n') + `\\n\\n` +\n      `Delivered: ${deliv}/${qty} (${fillRate.toFixed(1)}% Fill Rate). Current inventory runway is critically low at ${runway} days.\\n` +\n      `Please confirm carrier docket number and guaranteed dispatch ETA within 24 hours to prevent plant stockout.\\n\\n` +\n      `Best regards,\\nProcurement Operations`;\n  }\n\n  return {\n    json: {\n      ...row,\n      Delivered_Qty: deliv,\n      Fill_Rate: fillRate.toFixed(1),\n      risk_score: riskScore,\n      risk_score_display: `${riskScore}/6`,\n      risk_level: riskLevel,\n      failed_criteria: failedCriteria,\n      _risk_reason: failedCriteria.length > 0 ? failedCriteria.join('; ') : 'On Track',\n      supplier_email_body: emailBody,\n      Last_Action: riskLevel !== 'NORMAL' ? 'Escalation Email Sent' : (row.Last_Action || 'No Action Required'),\n      Last_Action_Timestamp: new Date().toISOString()\n    }\n  };\n});"
+        "jsCode": "// 6 Operational Risk Criteria Evaluator  (single source of truth for scoring in this workflow)\n// \u2500\u2500 Config: tune thresholds HERE and keep README/dashboards in sync \u2500\u2500\nconst CFG = { RUNWAY_DAYS: 2.0, OTD_MIN: 85.0, FILL_MIN: 90.0, ESCALATE_AT: 4, FOLLOW_UP_AT: 2, COOLDOWN_HOURS: 72 };\n// AS_OF: a fixed 'YYYY-MM-DD' makes the frozen demo dataset reproducible. Set to null to run live (today, UTC).\nconst AS_OF = '2026-09-25';\n\nconst now = new Date();\nconst asOf = AS_OF ? new Date(AS_OF) : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));\n\nconst out = [];\nfor (const item of $input.all()) {\n  const row = item.json;\n  if (row.PO_Number === undefined || String(row.PO_Number).trim() === '') continue;   // ignore blank rows\n\n  const expDate = new Date(row.Expected_Date);\n  const isOverdue = !isNaN(expDate.getTime()) && expDate < asOf;\n  const isPendingASN = (row.ASN_Status || '').trim().toLowerCase() === 'pending';\n  const runway = parseFloat(row.Inventory_Days) || 0;\n  const isCriticalRunway = runway < CFG.RUNWAY_DAYS;\n  const otd = parseFloat(row.Supplier_OTD) || 0;\n  const isOtdShortfall = otd < CFG.OTD_MIN;\n\n  const qty = parseFloat(row.Qty) || 0;\n  const deliv = parseFloat(row.Delivered_Qty != null && row.Delivered_Qty !== '' ? row.Delivered_Qty : (row.Qty || 0));\n  const fillRate = (row.Fill_Rate != null && row.Fill_Rate !== '') ? parseFloat(row.Fill_Rate) : (qty > 0 ? (deliv / qty * 100) : 100);\n  const isFillRateShortfall = fillRate < CFG.FILL_MIN;\n  const isHighCrit = (row.Material_Criticality || '').trim().toLowerCase() === 'high';\n\n  const failedCriteria = [];\n  if (isOverdue) failedCriteria.push('Overdue Delivery Date');\n  if (isPendingASN) failedCriteria.push('Pending ASN');\n  if (isCriticalRunway) failedCriteria.push(`Critical Runway (${runway}d < ${CFG.RUNWAY_DAYS}d)`);\n  if (isOtdShortfall) failedCriteria.push(`Historical OTD Shortfall (${otd}% < ${CFG.OTD_MIN}%)`);\n  if (isFillRateShortfall) failedCriteria.push(`Fill Rate Shortfall (${fillRate.toFixed(1)}% < ${CFG.FILL_MIN}%)`);\n  if (isHighCrit) failedCriteria.push('High Material Criticality');\n\n  const riskScore = failedCriteria.length;\n  let riskLevel = 'NORMAL';\n  if (riskScore >= CFG.ESCALATE_AT || (isCriticalRunway && isPendingASN)) riskLevel = 'ESCALATE';\n  else if (riskScore >= CFG.FOLLOW_UP_AT) riskLevel = 'FOLLOW_UP';\n\n  // Do not re-flag POs already waiting on a human, or recently decided (cooldown).\n  const state = String(row.Approval_State || '').trim().toUpperCase();\n  const lastTs = new Date(row.Last_Action_Timestamp);\n  const hoursSince = isNaN(lastTs.getTime()) ? Infinity : (now - lastTs) / 36e5;\n  const inFlight = state === 'PENDING' || state === 'PROCESSING';\n  const cooling = (state === 'APPROVED' || state === 'DECLINED') && hoursSince < CFG.COOLDOWN_HOURS;\n  if (riskLevel !== 'NORMAL' && (inFlight || cooling)) continue;\n\n  // Deterministic fallback draft (used if the LLM draft step fails)\n  let emailBody = '';\n  if (riskLevel !== 'NORMAL') {\n    const urgency = riskLevel === 'ESCALATE' ? 'URGENT ESCALATION' : 'Follow-Up Notice';\n    emailBody = `Dear ${row.Supplier_Name} Logistics Team,\\n\\n` +\n      `[${urgency}] Regarding PO #${row.PO_Number} for SKU ${row.SKU}.\\n` +\n      `Our Supply Chain Control Tower flagged this order with Risk Score ${riskScore}/6 due to:\\n` +\n      failedCriteria.map(c => `  - ${c}`).join('\\n') + `\\n\\n` +\n      `Delivered: ${deliv}/${qty} (${fillRate.toFixed(1)}% Fill Rate). Current inventory runway is ${runway} days.\\n` +\n      `Please confirm carrier docket number and guaranteed dispatch ETA within 24 hours to prevent plant stockout.\\n\\n` +\n      `Best regards,\\nProcurement Operations`;\n  }\n\n  out.push({ json: {\n    ...row,\n    Delivered_Qty: deliv,\n    Fill_Rate: fillRate.toFixed(1),\n    risk_score: riskScore,\n    risk_score_display: `${riskScore}/6`,\n    risk_level: riskLevel,\n    failed_criteria: failedCriteria,\n    _risk_reason: failedCriteria.length > 0 ? failedCriteria.join('; ') : 'On Track',\n    needs_flag: riskLevel !== 'NORMAL',\n    as_of_date: asOf.toISOString().slice(0, 10),\n    supplier_email_body: emailBody,\n    Last_Action_Timestamp: now.toISOString()\n  } });\n}\nreturn out;\n"
       },
       "id": "eval-6-criteria",
       "name": "Evaluate 6 Risk Criteria",
@@ -1088,7 +577,7 @@
       "main": [
         [
           {
-            "node": "Needs Supplier Email?",
+            "node": "Flag PO as Pending",
             "type": "main",
             "index": 0
           }
@@ -1111,6 +600,11 @@
         [
           {
             "node": "Identify Target Supplier",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Assess PO Risk",
             "type": "main",
             "index": 0
           }
@@ -1195,17 +689,6 @@
         ]
       ]
     },
-    "Save Briefs": {
-      "main": [
-        [
-          {
-            "node": "Flag PO as Pending",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Log No Action": {
       "main": [
         [
@@ -1273,7 +756,7 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
@@ -1282,12 +765,10 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "701287a8-26b0-4240-8563-500f17650586",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "ddc4a7b5b782d2b811a8149401fe34640fef7febf1f33bcd4e824ce3d854fc2b"
   },
   "nodeGroups": [],
-  "id": "mBmzzYPYxEXkOP2W",
   "tags": []
 }
