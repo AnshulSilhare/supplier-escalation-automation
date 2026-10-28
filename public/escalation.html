@@ -939,13 +939,15 @@
     if (!md) { $('facts-list').innerHTML=empty; $('inferences-list').innerHTML=empty; $('unknowns-list').innerHTML=empty; $('recs-list').innerHTML=empty; return; }
 
     let f=extractSection(md,'### Verified Facts','### Operational Inferences');
-    let i=extractSection(md,'### Operational Inferences','### Prescribed Countermeasures');
+    let i=extractSection(md,'### Operational Inferences','### Operational Unknowns');
+    if (!i) i=extractSection(md,'### Operational Inferences','### Prescribed Countermeasures');
+    let u=extractSection(md,'### Operational Unknowns','### Prescribed Countermeasures');
     let c=extractSection(md,'### Prescribed Countermeasures',null);
     if (f===null&&i===null&&c===null) f=`<li style="line-height:1.7;">${md.trim()}</li>`;
 
     $('facts-list').innerHTML=f||empty;
     $('inferences-list').innerHTML=i||empty;
-    $('unknowns-list').innerHTML=empty;
+    $('unknowns-list').innerHTML=u||empty;
     $('recs-list').innerHTML=c||empty;
   }
 
