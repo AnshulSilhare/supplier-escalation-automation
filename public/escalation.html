@@ -1251,6 +1251,24 @@
         <button onclick="closeWorkflowModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:6px;" onmouseenter="this.style.color='var(--ink)'"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
       </div>
 
+      
+      <!-- Visual Canvas Screenshot Box -->
+      <div style="margin-bottom:20px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0b0f19;">
+        <div style="padding:10px 16px;background:var(--surface2);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);">
+          <span style="display:flex;align-items:center;gap:6px;color:var(--ink);">
+            <i data-lucide="layout-grid" style="width:14px;height:14px;color:var(--accent);"></i> Live n8n Visual Workflow Canvas (19 Nodes)
+          </span>
+          <a href="n8n_workflow_canvas.png" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none;font-weight:600;display:flex;align-items:center;gap:4px;">
+            <i data-lucide="external-link" style="width:12px;height:12px;"></i> View Full Size
+          </a>
+        </div>
+        <div style="padding:10px;text-align:center;background:#0f172a;">
+          <a href="n8n_workflow_canvas.png" target="_blank" title="Click to open full resolution image">
+            <img src="n8n_workflow_canvas.png" alt="n8n Automation Workflow Canvas" style="width:100%;max-height:360px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.1);cursor:zoom-in;transition:transform 0.2s;" onmouseenter="this.style.transform='scale(1.01)'" onmouseleave="this.style.transform='scale(1)'" />
+          </a>
+        </div>
+      </div>
+
       <!-- Architecture Pipeline Diagram -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:16px;margin-bottom:24px;">
         

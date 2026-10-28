@@ -28,6 +28,27 @@ n8n Automation Engine (Render Web Service + Supabase PostgreSQL)
 
 ---
 
+
+## 🤖 n8n Workflow Automation Pipeline
+
+The core PO automation orchestrates data ingestion from Google Sheets, the 6-criteria risk scoring engine, and automated email escalation with human-in-the-loop approvals:
+
+![n8n Workflow Canvas](docs/screenshots/n8n_workflow_canvas.png)
+
+### Key Orchestrated Pipeline Stages:
+1. **Daily Cron Trigger & Sheets Ingestion**: Fires on an 08:00 AM daily schedule (or webhook) and pulls 19 operational columns from the Google Sheets database.
+2. **6-Criteria Operational Scoring Engine**: Evaluates each PO against 6 standardized operational benchmarks:
+   - 📅 **Overdue Delivery Date**: `Expected_Date < Current_Date`
+   - 📦 **Pending ASN**: `ASN_Status == 'Pending'`
+   - ⏱️ **Critical Inventory Runway**: `Inventory_Days < 2.0 days`
+   - 📉 **Historical OTD Shortfall**: `Supplier_OTD < 85.0%`
+   - 📊 **Fill Rate Shortfall**: `Fill_Rate < 90.0%`
+   - ⚠️ **High Material Criticality**: `Material_Criticality == 'High'`
+3. **Decision Branching (IF Node)**: Bypasses compliant suppliers (score 0–1) to auto-pass audit logging, while routing at-risk orders (score 4+ or critical runway + ASN) to the remediation flow.
+4. **AI & Dynamic Email Escalation**: Auto-drafts targeted escalation emails citing specific runway deficits and unfulfilled quantities, dispatches via Gmail, and records immutable audit logs in `Execution_Log`.
+
+---
+
 ## 📦 Project Structure
 
 ```
