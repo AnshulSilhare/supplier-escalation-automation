@@ -51,7 +51,11 @@
         "text": "=Draft the supplier email for this purchase order. The risk assessment was ALREADY made by our scoring engine; do not re-score it. Use only the facts below.\n\nPO_Number: {{ $json.PO_Number }}\nSupplier_Name: {{ $json.Supplier_Name }}\nSupplier_Email: {{ $json.Supplier_Email }}\nSKU: {{ $json.SKU }}\nQty ordered: {{ $json.Qty }}\nQty delivered: {{ $json.Delivered_Qty }} (Fill rate {{ $json.Fill_Rate }}%)\nExpected_Date: {{ $json.Expected_Date }}\nASN_Status: {{ $json.ASN_Status }}\nLast_Shipment_Update: {{ $json.Last_Shipment_Update }}\nPlant stock runway (days): {{ $json.Inventory_Days }}\nRisk_Level: {{ $json.risk_level }}\nRisk_Score: {{ $json.risk_score_display }}\nFailed_Criteria: {{ ($json.failed_criteria || []).join('; ') }}\nAs_Of_Date: {{ $json.as_of_date }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "You are a supply-chain procurement assistant. A deterministic scoring engine has already classified the PO; your job is ONLY to write the supplier email.\n\nReturn these fields:\n- risk_level: echo the Risk_Level you were given (ESCALATE or FOLLOW_UP).\n- risk_reason: one or two sentences summarising the Failed_Criteria in plain language.\n- recommended_action: the concrete next step for the buyer.\n- supplier_email_body: a complete, professional plain-text email (greeting, PO number, SKU, ordered vs delivered quantity, the specific information needed such as carrier docket number, ASN and a confirmed dispatch ETA, a clear response deadline of 24 hours for ESCALATE or 48 hours for FOLLOW_UP, and a sign-off from the Procurement team). Tone: firm but polite for ESCALATE, courteous for FOLLOW_UP.\n\nRules: use only the data provided; never invent dates, quantities, names or penalties."
+          "systemMessage": "You are a supply-chain procurement assistant. A deterministic scoring engine has already classified the PO; your job is ONLY to write the supplier email.\n\nReturn these fields:\n- risk_level: echo the Risk_Level you were given (ESCALATE or FOLLOW_UP).\n- risk_reason: one or two sentences summarising the Failed_Criteria in plain language.\n- recommended_action: the concrete next step for the buyer.\n- supplier_email_body: a complete, professional plain-text email (greeting, PO number, SKU, ordered vs delivered quantity, the specific information needed such as carrier docket number, ASN and a confirmed dispatch ETA, a clear response deadline of 24 hours for ESCALATE or 48 hours for FOLLOW_UP, and a sign-off from the Procurement team). Tone: firm but polite for ESCALATE, courteous for FOLLOW_UP.\n\nRules: use only the data provided; never invent dates, quantities, names or penalties.",
+          "batching": {
+            "batchSize": 1,
+            "delayBetweenBatches": 15000
+          }
         }
       },
       "id": "b92d6364-f9fb-4148-b599-b734913670ba",
@@ -547,6 +551,23 @@
         480,
         200
       ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "run-po-automation",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -224,
+        -160
+      ],
+      "id": "run-hook-0001",
+      "name": "Run via Webhook"
     }
   ],
   "pinData": {},
@@ -749,6 +770,17 @@
         [
           {
             "node": "Needs Supplier Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run via Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read PO Tracker",
             "type": "main",
             "index": 0
           }

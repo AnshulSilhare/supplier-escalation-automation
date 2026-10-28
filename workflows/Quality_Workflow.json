@@ -1,5 +1,5 @@
 {
-  "name": "Quality Workflow",
+  "name": "Quality Workflow (cached)",
   "nodes": [
     {
       "parameters": {
@@ -112,7 +112,8 @@
       ],
       "id": "qa-ai",
       "name": "Generate AI Root Cause",
-      "executeOnce": true
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -137,7 +138,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const qaData = $('Process Quality Data').first().json;\nconst aiData = $('Generate AI Root Cause').first().json;\nqaData.ai_analysis = aiData.text || aiData.output || '';\nreturn [{ json: qaData }];"
+        "jsCode": "const sd = $getWorkflowStaticData('global');\nconst base = $('Process Quality Data').first().json;\ndelete base._cache_fresh;\nlet text = '';\ntry { const a = $('Generate AI Root Cause').first().json; text = a.text || a.output || ''; } catch (e) { text = ''; }\nif (text) { sd.ai_text = text; sd.ai_ts = Date.now(); }\nelse { text = sd.ai_text || 'AI narrative temporarily unavailable (free-tier quota). Data below is live.'; }\nbase.ai_analysis = text;\nreturn [{ json: base }];"
       },
       "id": "qa-merge",
       "name": "Merge Data + AI",
@@ -174,6 +175,53 @@
         1360,
         400
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Free-tier guard: reuse the last AI text for 6 hours; a POST 'Run' forces a refresh.\nconst sd = $getWorkflowStaticData('global');\nconst data = $input.first().json;\nconst TTL_MS = 6 * 3600 * 1000;\nlet forced = false; try { forced = $('Run Quality').isExecuted; } catch (e) {}\nconst fresh = !forced && !!sd.ai_text && !!sd.ai_ts && (Date.now() - sd.ai_ts) < TTL_MS;\nreturn [{ json: { ...data, _cache_fresh: fresh } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        810,
+        230
+      ],
+      "id": "cache-check-ai_analysis",
+      "name": "AI Cache Check"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fresh",
+              "leftValue": "={{ $json._cache_fresh }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        920,
+        230
+      ],
+      "id": "cache-if-ai_analysis",
+      "name": "AI Cache Fresh?"
     }
   ],
   "connections": {
@@ -214,7 +262,7 @@
       "main": [
         [
           {
-            "node": "Generate AI Root Cause",
+            "node": "AI Cache Check",
             "type": "main",
             "index": 0
           }
@@ -248,6 +296,35 @@
         [
           {
             "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Cache Check": {
+      "main": [
+        [
+          {
+            "node": "AI Cache Fresh?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Cache Fresh?": {
+      "main": [
+        [
+          {
+            "node": "Merge Data + AI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate AI Root Cause",
             "type": "main",
             "index": 0
           }
