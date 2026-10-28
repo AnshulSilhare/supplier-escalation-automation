@@ -903,6 +903,12 @@
     const po = poData.find(p => p.PO_Number == poNumber);
     if (!po) return;
 
+    const rL = po.risk_level || 'NORMAL';
+    if (rL === 'NORMAL' && !po.supplier_email_body) {
+      showToast('Compliant Order', `PO #${poNumber} passed all 6 risk criteria. No escalation required.`, 'ok');
+      return;
+    }
+
     $('email-modal-title').textContent = `Email · PO ${poNumber}`;
     $('email-modal-subtitle').textContent = `To ${po.Supplier_Name || 'Supplier'}`;
     $('email-to').textContent = po.Supplier_Email || 'N/A';
@@ -1222,19 +1228,22 @@
       // Fill Rate styling
       const fillStyle = fillRate < 90.0 ? 'color:var(--critical);font-weight:700;' : 'color:var(--ok);font-weight:600;';
 
-      // Action Cell
+      // Action Cell: Only ESCALATE / FOLLOW_UP have escalations & approve actions
       const isSent = (po.Last_Action || '').toLowerCase().includes('sent') || po._is_approved;
       let actionCell = `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">`;
-      actionCell += `<button onclick="event.stopPropagation();openEmailModal('${po.PO_Number}')" style="font-size:11px;font-weight:600;background:none;color:var(--accent);border:1px solid var(--accent);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all 0.15s;" onmouseenter="this.style.background='var(--accent-soft)'" onmouseleave="this.style.background='none'"><i data-lucide="mail" style="width:12px;height:12px;"></i> View Escalation</button>`;
       
       if (riskLevel === 'ESCALATE' || riskLevel === 'FOLLOW_UP') {
+        actionCell += `<button onclick="event.stopPropagation();openEmailModal('${po.PO_Number}')" style="font-size:11px;font-weight:600;background:none;color:var(--accent);border:1px solid var(--accent);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all 0.15s;" onmouseenter="this.style.background='var(--accent-soft)'" onmouseleave="this.style.background='none'"><i data-lucide="mail" style="width:12px;height:12px;"></i> View Escalation</button>`;
         if (isSent) {
-          actionCell += `<span style="font-size:11px;font-weight:700;color:var(--ok);background:var(--ok-soft);padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(34,197,94,0.3);"><i data-lucide="check" style="width:12px;height:12px;"></i> Approved</span>`;
+          actionCell += `<span style="font-size:11px;font-weight:700;color:var(--ok);background:var(--ok-soft);padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(34,197,94,0.3);"><i data-lucide="check" style="width:11px;height:11px;"></i> Approved</span>`;
         } else {
           actionCell += `<button id="btn-APPROVED-${po.PO_Number}" onclick="event.stopPropagation();submitDecision('${po.PO_Number}','APPROVED')" style="font-size:11px;font-weight:600;background:var(--ok);color:#fff;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:opacity 0.15s;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'"><i data-lucide="send" style="width:11px;height:11px;"></i> Approve</button>`;
         }
+      } else {
+        actionCell += `<span style="font-size:11px;font-weight:600;color:var(--ok);background:var(--ok-soft);padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(34,197,94,0.25);"><i data-lucide="shield-check" style="width:12px;height:12px;"></i> Auto-Passed</span>`;
       }
-      actionCell += `<button onclick="event.stopPropagation();openAuditModal('${po.PO_Number}')" style="font-size:11px;font-weight:500;background:none;color:var(--muted);border:1px solid var(--line);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:3px;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--line)'"><i data-lucide="history" style="width:12px;height:12px;"></i></button>`;
+      
+      actionCell += `<button onclick="event.stopPropagation();openAuditModal('${po.PO_Number}')" style="font-size:11px;font-weight:500;background:none;color:var(--muted);border:1px solid var(--line);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:3px;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--line)'" title="View Audit Trail"><i data-lucide="history" style="width:12px;height:12px;"></i></button>`;
       actionCell += `</div>`;
 
       return `
@@ -1445,6 +1454,12 @@
     const po = poData.find(p => p.PO_Number == poNumber);
     if (!po) return;
 
+    const rL = po.risk_level || 'NORMAL';
+    if (rL === 'NORMAL' && !po.supplier_email_body) {
+      showToast('Compliant Order', `PO #${poNumber} passed all 6 risk criteria. No escalation required.`, 'ok');
+      return;
+    }
+
     $('email-modal-title').textContent = `Email · PO ${poNumber}`;
     $('email-modal-subtitle').textContent = `To ${po.Supplier_Name || 'Supplier'}`;
     $('email-to').textContent = po.Supplier_Email || 'N/A';
@@ -1764,19 +1779,22 @@
       // Fill Rate styling
       const fillStyle = fillRate < 90.0 ? 'color:var(--critical);font-weight:700;' : 'color:var(--ok);font-weight:600;';
 
-      // Action Cell
+      // Action Cell: Only ESCALATE / FOLLOW_UP have escalations & approve actions
       const isSent = (po.Last_Action || '').toLowerCase().includes('sent') || po._is_approved;
       let actionCell = `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">`;
-      actionCell += `<button onclick="event.stopPropagation();openEmailModal('${po.PO_Number}')" style="font-size:11px;font-weight:600;background:none;color:var(--accent);border:1px solid var(--accent);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all 0.15s;" onmouseenter="this.style.background='var(--accent-soft)'" onmouseleave="this.style.background='none'"><i data-lucide="mail" style="width:12px;height:12px;"></i> View Escalation</button>`;
       
       if (riskLevel === 'ESCALATE' || riskLevel === 'FOLLOW_UP') {
+        actionCell += `<button onclick="event.stopPropagation();openEmailModal('${po.PO_Number}')" style="font-size:11px;font-weight:600;background:none;color:var(--accent);border:1px solid var(--accent);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all 0.15s;" onmouseenter="this.style.background='var(--accent-soft)'" onmouseleave="this.style.background='none'"><i data-lucide="mail" style="width:12px;height:12px;"></i> View Escalation</button>`;
         if (isSent) {
-          actionCell += `<span style="font-size:11px;font-weight:700;color:var(--ok);background:var(--ok-soft);padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(34,197,94,0.3);"><i data-lucide="check" style="width:12px;height:12px;"></i> Approved</span>`;
+          actionCell += `<span style="font-size:11px;font-weight:700;color:var(--ok);background:var(--ok-soft);padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(34,197,94,0.3);"><i data-lucide="check" style="width:11px;height:11px;"></i> Approved</span>`;
         } else {
           actionCell += `<button id="btn-APPROVED-${po.PO_Number}" onclick="event.stopPropagation();submitDecision('${po.PO_Number}','APPROVED')" style="font-size:11px;font-weight:600;background:var(--ok);color:#fff;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:opacity 0.15s;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'"><i data-lucide="send" style="width:11px;height:11px;"></i> Approve</button>`;
         }
+      } else {
+        actionCell += `<span style="font-size:11px;font-weight:600;color:var(--ok);background:var(--ok-soft);padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(34,197,94,0.25);"><i data-lucide="shield-check" style="width:12px;height:12px;"></i> Auto-Passed</span>`;
       }
-      actionCell += `<button onclick="event.stopPropagation();openAuditModal('${po.PO_Number}')" style="font-size:11px;font-weight:500;background:none;color:var(--muted);border:1px solid var(--line);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:3px;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--line)'"><i data-lucide="history" style="width:12px;height:12px;"></i></button>`;
+      
+      actionCell += `<button onclick="event.stopPropagation();openAuditModal('${po.PO_Number}')" style="font-size:11px;font-weight:500;background:none;color:var(--muted);border:1px solid var(--line);padding:4px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:3px;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--line)'" title="View Audit Trail"><i data-lucide="history" style="width:12px;height:12px;"></i></button>`;
       actionCell += `</div>`;
 
       return `
