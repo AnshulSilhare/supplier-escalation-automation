@@ -66,7 +66,7 @@
 
   /* ── Sticky column ── */
   .sticky-col {
-    position: sticky; right: 0; z-index: 5;
+    /* position: sticky removed to prevent covering Status */
     background: var(--surface); border-left: 1px solid var(--line);
     box-shadow: -4px 0 12px rgba(0,0,0,0.15);
   }
@@ -256,7 +256,7 @@
     </section>
 
     <!-- ──── LEDGER + INTELLIGENCE ──── -->
-    <div style="display:grid;grid-template-columns:1fr 400px;gap:24px;">
+    <div style="display:grid;grid-template-columns:1fr 350px;gap:24px;">
 
       <!-- PO Ledger -->
       <section class="glass-card" style="display:flex;flex-direction:column;max-height:640px;overflow:hidden;">
@@ -276,15 +276,15 @@
           <table style="width:100%;border-collapse:collapse;font-size:13px;" id="po-table">
             <thead style="position:sticky;top:0;z-index:10;">
               <tr style="background:var(--surface2);border-bottom:1px solid var(--line);">
-                <th style="padding:10px 14px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="PO_Number">PO Number</th>
-                <th style="padding:10px 14px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="Supplier_Name">Supplier</th>
-                <th style="padding:10px 14px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="SKU">SKU</th>
-                <th style="padding:10px 14px;text-align:right;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="Inventory_Days">Inventory Runway</th>
-                <th style="padding:10px 14px;text-align:right;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="Supplier_OTD">OTD %</th>
-                <th style="padding:10px 14px;text-align:right;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="Fill_Rate">Fill Rate %</th>
-                <th style="padding:10px 14px;text-align:center;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="risk_score">Risk Score</th>
-                <th style="padding:10px 14px;text-align:center;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;">Status</th>
-                <th style="padding:10px 14px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;background:var(--surface2);" class="sticky-col">Action</th>
+                <th style="padding:8px 8px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="PO_Number">PO Number</th>
+                <th style="padding:8px 8px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="Supplier_Name">Supplier</th>
+                <th style="padding:8px 8px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="SKU">SKU</th>
+                <th style="padding:8px 8px;text-align:right;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="Inventory_Days">Inventory Runway</th>
+                <th style="padding:8px 8px;text-align:right;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="Supplier_OTD">OTD %</th>
+                <th style="padding:8px 8px;text-align:right;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="Fill_Rate">Fill Rate %</th>
+                <th style="padding:8px 8px;text-align:center;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;cursor:pointer;" data-sort="risk_score">Risk Score</th>
+                <th style="padding:8px 8px;text-align:center;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;">Status</th>
+                <th style="padding:8px 8px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;background:var(--surface2);" >Action</th>
               </tr>
             </thead>
             <tbody id="po-table-body"></tbody>
@@ -572,6 +572,34 @@
     }
   ];
 
+    const FALLBACK_RISK_BRIEF = `### Verified Facts
+- Supplier: Tata Steel (PO #45001242)
+- Material: Cold-Rolled-Coil-1.2mm | Quantity: 65T (0/65T delivered - 0.0% Fill Rate)
+- Current Plant Inventory Runway: 0.8 Days (Critical Safety Stock Threshold: 2.0 Days)
+- Expected Delivery Date: 2026-09-19 (Overdue by > 35 days) | ASN Status: Pending
+- Historical Supplier OTD: 72.0% (Company Benchmark: 85.0%)
+
+### Operational Inferences
+- Rolling Mill Bottleneck: The total absence of an Advanced Shipping Notice (ASN) suggests production scheduling delays at the Jamshedpur cold-rolling complex rather than in-transit carrier disruption.
+- Immediate Production Threat: With runway at 0.8 days, the automotive body stamping shop will experience complete line starvation within 24 hours.
+
+### Operational Unknowns
+- Carrier tracking docket number has not been generated by Tata Steel logistics.
+- Exact allocation queue status for replacement cold-rolled master coils is unconfirmed.
+
+### Prescribed Countermeasures
+- Issue Level-1 executive escalation to Tata Steel Key Account Director requesting hot-shot freight dispatch.
+- Activate emergency secondary allocation with JSW Steel / POSCO service center for spot coil supply (40T minimum).
+- Re-sequence press shop schedule to prioritize vehicle variants with available sheet inventory.`;
+
+  const FALLBACK_AUDIT_LOG = [
+    { Timestamp: "2026-10-28T16:00:00Z", PO_Number: "45001242", Supplier_Name: "Tata Steel", Risk_Level: "ESCALATE", Action_Taken: "Supplier Email Sent", Approval_Status: "Approved", Notes: "CRITICAL RISK (6/6): 0.8d runway, 0% fill rate, 72% historical OTD, overdue delivery, pending ASN", Drafted_Email: "Dear Tata Steel Key Accounts Team...\n\nCRITICAL ESCALATION: Purchase Order 45001242 for Cold-Rolled-Coil-1.2mm (Qty: 65T) was due on 2026-09-19 and remains completely unfulfilled (0% delivered, ASN Pending). Our plant inventory runway has dropped below 1 day to 0.8 days.\n\nWithout immediate delivery within 24 hours, our stamping press facility faces a complete shutdown. Please confirm immediate hot-shot vehicle dispatch." },
+    { Timestamp: "2026-10-28T16:05:00Z", PO_Number: "45001236", Supplier_Name: "SKF India", Risk_Level: "ESCALATE", Action_Taken: "Supplier Email Sent", Approval_Status: "Approved", Notes: "Severe OTIF failure (6/6): 1.2d runway, 72.0% fill rate, 76% historical OTD, overdue delivery", Drafted_Email: "Dear SKF India Operations Team...\n\nURGENT: Purchase Order 45001236 for Bearing-6205-2RS was due on 2026-09-20. Only 3,600 of 5,000 units have been received (Fill Rate: 72.0%). Remaining balance has no ASN uploaded and our production buffer runway is at 1.2 days." },
+    { Timestamp: "2026-10-28T16:10:00Z", PO_Number: "45001234", Supplier_Name: "Motherson", Risk_Level: "ESCALATE", Action_Taken: "Supplier Email Sent", Approval_Status: "Approved", Notes: "Critical Risk (6/6): Overdue delivery with pending ASN, low runway (1.8d), and fill rate shortfall (80.0%)", Drafted_Email: "Dear Motherson Team...\n\nPO 45001234 for SKU Wire-Harness-WH4 is currently overdue (ETA: 2026-09-21). ASN remains Pending and delivered quantity is 960/1200 (Fill Rate: 80.0%). Current inventory runway is critically low at 1.8 days." },
+    { Timestamp: "2026-10-28T16:15:00Z", PO_Number: "45001238", Supplier_Name: "Bharat Forge", Risk_Level: "ESCALATE", Action_Taken: "Supplier Email Sent", Approval_Status: "Approved", Notes: "High Risk (5/6): Overdue delivery with partial fulfillment (80.6%), low OTD (79%), pending ASN", Drafted_Email: "Dear Bharat Forge Logistics...\n\nPO 45001238 for Crankshaft-Forging-V6 is overdue past 2026-09-22. Delivered quantity is 145/180 (Fill Rate: 80.6%). ASN for remaining 35 forgings has not been received." },
+    { Timestamp: "2026-10-28T16:20:00Z", PO_Number: "45001240", Supplier_Name: "Bosch India", Risk_Level: "NORMAL", Action_Taken: "None", Approval_Status: "Auto-Passed", Notes: "100% fill rate, 9.0d runway, strong OTD (96%)" }
+  ];
+
   let poData=[...FALLBACK_TRACKER], auditLog=null, isLiveData=false, lastSynced='', lastAuditLogLength=0;
   let currentSort={column:'Expected_Date',direction:'asc'};
   let primarySupplier='',primaryPO='',primarySKU='',runnerUpSupplier='N/A';
@@ -687,12 +715,13 @@
           } else { parseMD('','Unknown'); }
         } else { throw new Error("Invalid 'tracker' in API payload"); }
       } catch(e) {
-        console.warn('API fetch failed:', e);
         console.warn('API fetch failed, utilizing standardized operations dataset:', e);
         showToast('Demo Mode', 'Operating with complete standardized dataset (10 POs)', 'info');
         poData = [...FALLBACK_TRACKER];
+        auditLog = [...FALLBACK_AUDIT_LOG];
         isLiveData = false;
         annotateRunway();
+        parseMD(FALLBACK_RISK_BRIEF, "Tata Steel");
       }
       updateProvenance();
       renderDashboard();
@@ -1085,15 +1114,15 @@
 
       return `
         <tr class="table-row ${isHighest ? 'highest' : ''}" style="border-bottom:1px solid var(--line);cursor:pointer;" onclick="openAuditModal('${po.PO_Number}')">
-          <td style="padding:10px 14px;white-space:nowrap;"><span class="po-link tnum">${po.PO_Number || ''}</span></td>
-          <td style="padding:10px 14px;white-space:nowrap;font-weight:600;">${po.Supplier_Name || ''}</td>
-          <td style="padding:10px 14px;white-space:nowrap;color:var(--muted);">${po.SKU || ''}</td>
-          <td style="padding:10px 14px;white-space:nowrap;text-align:right;${rwStyle}" class="tnum">${rwText}</td>
-          <td style="padding:10px 14px;white-space:nowrap;text-align:right;${otdStyle}" class="tnum">${otd.toFixed(1)}%</td>
-          <td style="padding:10px 14px;white-space:nowrap;text-align:right;${fillStyle}" class="tnum">${fillRate.toFixed(1)}%</td>
-          <td style="padding:10px 14px;white-space:nowrap;text-align:center;">${scorePill}</td>
-          <td style="padding:10px 14px;white-space:nowrap;text-align:center;">${badge}</td>
-          <td style="padding:10px 14px;white-space:nowrap;" class="sticky-col">${actionCell}</td>
+          <td style="padding:8px 8px;white-space:nowrap;"><span class="po-link tnum">${po.PO_Number || ''}</span></td>
+          <td style="padding:8px 8px;white-space:nowrap;font-weight:600;">${po.Supplier_Name || ''}</td>
+          <td style="padding:8px 8px;white-space:nowrap;color:var(--muted);">${po.SKU || ''}</td>
+          <td style="padding:8px 8px;white-space:nowrap;text-align:right;${rwStyle}" class="tnum">${rwText}</td>
+          <td style="padding:8px 8px;white-space:nowrap;text-align:right;${otdStyle}" class="tnum">${otd.toFixed(1)}%</td>
+          <td style="padding:8px 8px;white-space:nowrap;text-align:right;${fillStyle}" class="tnum">${fillRate.toFixed(1)}%</td>
+          <td style="padding:8px 8px;white-space:nowrap;text-align:center;">${scorePill}</td>
+          <td style="padding:8px 8px;white-space:nowrap;text-align:center;">${badge}</td>
+          <td style="padding:8px 8px;white-space:nowrap;" >${actionCell}</td>
         </tr>`;
     }).join('');
 
@@ -1107,12 +1136,14 @@
     let actionable=0, approved=0;
 
     auditLog.forEach(log=>{
-      const r=(log.Action_Taken||log.Risk_Level||'NORMAL').toUpperCase();
-      cls[r]!==undefined?cls[r]++:cls.NORMAL++;
-      if (r==='FOLLOW_UP'||r==='ESCALATE') {
+      const r=(log.Risk_Level||log.Action_Taken||'NORMAL').toUpperCase();
+      if (r==='ESCALATE'||r==='FOLLOW_UP') {
+        cls[r]++;
         actionable++;
         const s=(log.Approval_Status||'').toUpperCase();
         if (s==='APPROVED'||s==='TRUE'||s==='YES') approved++;
+      } else {
+        cls.NORMAL++;
       }
     });
 
